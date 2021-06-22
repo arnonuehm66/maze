@@ -1,11 +1,11 @@
-CC = gcc
-STRIP = strip
+NAME = maze
 
+CC = gcc
 CFLAGS = -Wall -Ofast -DNDEBUG
 DBCFLAGS = -Wall -O0 -g -DDEBUG
 LIBS =
 
-NAME = maze
+STRIP = strip
 
 $(NAME): main.c
 	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
