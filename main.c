@@ -18,8 +18,8 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "../libs/c_string.h"
-#include "../libs/c_dynamic_arrays_macros.h"
+#include "c_string.h"
+#include "c_dynamic_arrays_macros.h"
 
 
 //******************************************************************************
@@ -59,7 +59,7 @@ cstr g_csMename;
 //******************************************************************************
 //* outsourced standard functions, includes and defines
 
-#include "../libs/stdfcns.c"
+#include "stdfcns.c"
 
 
 //******************************************************************************
@@ -272,16 +272,16 @@ int randIab(int iFrom, int iTo) {
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  cellFromXY
+ * Purpose: Calculates the cell offset from given X and Y coordinates.
  *******************************************************************************/
 int cellFromXY(int iX, int iY) {
   return iX + iY * g_tOpts.sGridX;
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  getOpenWall
+ * Purpose: Returns which wall in cell is open.
  *******************************************************************************/
 int getOpenWall(int iX, int iY) {
   int iCell = cellFromXY(iX, iY);
