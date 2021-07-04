@@ -37,7 +37,7 @@ cstr g_csMename;
 #define sERR_FILE  "File error"
 #define sERR_ELSE  "Unknown error"
 
-// Walls in grid.     //     N          2
+// Walls in grid.      //     N          2
 #define CELL_NORTH 2   //     |          |
 #define CELL_WEST  3   // W --+-- E  3 --+-- 5
 #define CELL_SOUTH 5   //     |          |
