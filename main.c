@@ -426,6 +426,9 @@ void goToNextNewCell(int* piDir, int* piX, int* piY) {
       goBackAndLookForWholeCell(piDir, piX, piY);
     }
   }
+
+// Test git push mit Auth-Token.
+
   // If hit wall get random dir until a unused cell is in front.
   // If cell is used go one step back and get random dir until a unused cell is in front.
   // Break the walls to tha cell and step into it.
