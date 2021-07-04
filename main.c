@@ -43,13 +43,14 @@ cstr g_csMename;
 #define CELL_SOUTH 5   //     |          |
 #define CELL_EAST  7   //     S          7
 #define CELL_NONE  0
+#define CELL_WHOLE (CELL_NORTH * CELL_WEST * CELL_SOUTH * CELL_EAST)
 // The prime numbers multiplied equal 210 = 2 * 3 * 5 * 7
 
-#define GO_NORTH 0x00
-#define GO_WEST  0x01
-#define GO_SOUTH 0x02
-#define GO_EAST  0x03
-#define GO_MOD   4
+#define DIR_NORTH 0x00
+#define DIR_WEST  0x01
+#define DIR_SOUTH 0x02
+#define DIR_EAST  0x03
+#define DIR_MOD   4
 
 #define MOVE_FRONT 0x00
 #define MOVE_LEFT  0x01
@@ -274,10 +275,10 @@ int randIab(int iFrom, int iTo) {
 }
 
 /*******************************************************************************
- * Name:  cellFromXY
+ * Name:  cellXY
  * Purpose: Calculates the cell offset from given X and Y coordinates.
  *******************************************************************************/
-int cellFromXY(int iX, int iY) {
+int cellXY(int iX, int iY) {
   return iX + iY * g_tOpts.sGridX;
 }
 
@@ -286,7 +287,7 @@ int cellFromXY(int iX, int iY) {
  * Purpose: .
  *******************************************************************************/
 int turnRight(int iDir) {
-  return (iDir + 1) % GO_MOD;
+  return (iDir + 1) % DIR_MOD;
 }
 
 /*******************************************************************************
@@ -294,7 +295,7 @@ int turnRight(int iDir) {
  * Purpose: .
  *******************************************************************************/
 int turnAround(int iDir) {
-  return (iDir + 2) % GO_MOD;
+  return (iDir + 2) % DIR_MOD;
 }
 
 /*******************************************************************************
@@ -302,7 +303,7 @@ int turnAround(int iDir) {
  * Purpose: .
  *******************************************************************************/
 int turnLeft(int iDir) {
-  return (iDir + 3) % GO_MOD;
+  return (iDir + 3) % DIR_MOD;
 }
 
 /*******************************************************************************
@@ -310,23 +311,36 @@ int turnLeft(int iDir) {
  * Purpose: Returns true if iDir points beyond cells.
  *******************************************************************************/
 int isBorder(int iDir, int iX, int iY) {
-  if (iDir == GO_NORTH && iY == 0)                  return 1;
-  if (iDir == GO_WEST  && iX == 0)                  return 1;
-  if (iDir == GO_SOUTH && iY == g_tOpts.sGridY - 1) return 1;
-  if (iDir == GO_EAST  && iX == g_tOpts.sGridX - 1) return 1;
+  if (iDir == DIR_NORTH && iY == 0)                  return 1;
+  if (iDir == DIR_WEST  && iX == 0)                  return 1;
+  if (iDir == DIR_SOUTH && iY == g_tOpts.sGridY - 1) return 1;
+  if (iDir == DIR_EAST  && iX == g_tOpts.sGridX - 1) return 1;
   return 0;
 }
 
 /*******************************************************************************
- * Name:  isWall
+ * Name:  isDirWall
  * Purpose: Returns true if iDir points to an open wall.
  *******************************************************************************/
-int isWall(int iDir, int iX, int iY) {
-  int iCell = cellFromXY(iX, iY);
-  if (iDir == GO_NORTH && g_iGrid[iCell] % CELL_NORTH == 0) return 1;
-  if (iDir == GO_WEST  && g_iGrid[iCell] % CELL_WEST  == 0) return 1;
-  if (iDir == GO_SOUTH && g_iGrid[iCell] % CELL_SOUTH == 0) return 1;
-  if (iDir == GO_EAST  && g_iGrid[iCell] % CELL_EAST  == 0) return 1;
+int isDirWall(int iDir, int iX, int iY) {
+  int iCell = g_iGrid[cellXY(iX, iY)];
+  if (iDir == DIR_NORTH && iCell % CELL_NORTH == 0) return 1;
+  if (iDir == DIR_WEST  && iCell % CELL_WEST  == 0) return 1;
+  if (iDir == DIR_SOUTH && iCell % CELL_SOUTH == 0) return 1;
+  if (iDir == DIR_EAST  && iCell % CELL_EAST  == 0) return 1;
+  return 0;
+}
+
+/*******************************************************************************
+ * Name:  isDirCellWhole
+ * Purpose: Returns true if next cell in iDir is whole.
+ *******************************************************************************/
+int isDirCellWhole(int iDir, int iX, int iY) {
+  if (isDirWall(iDir, iX, iY)) return 0;
+  if (iDir == DIR_NORTH && g_iGrid[cellXY(iX,     iY - 1)] == CELL_WHOLE) return 1;
+  if (iDir == DIR_WEST  && g_iGrid[cellXY(iX - 1, iY    )] == CELL_WHOLE) return 1;
+  if (iDir == DIR_SOUTH && g_iGrid[cellXY(iX,     iY + 1)] == CELL_WHOLE) return 1;
+  if (iDir == DIR_EAST  && g_iGrid[cellXY(iX + 1, iY    )] == CELL_WHOLE) return 1;
   return 0;
 }
 
@@ -335,7 +349,7 @@ int isWall(int iDir, int iX, int iY) {
  * Purpose: Returns which walls in cell is open.
  *******************************************************************************/
 int getOpenWalls(int iX, int iY) {
-  int iCell  = cellFromXY(iX, iY);
+  int iCell  = cellXY(iX, iY);
   int iWalls = 1;
   if (g_iGrid[iCell] % CELL_NORTH == 0) iWalls *= CELL_NORTH;
   if (g_iGrid[iCell] % CELL_WEST  == 0) iWalls *= CELL_WEST;
@@ -345,20 +359,72 @@ int getOpenWalls(int iX, int iY) {
 }
 
 /*******************************************************************************
+ * Name:  getDirWall
+ * Purpose: Returns wall in direction.
+ *******************************************************************************/
+int getDirWall(int iDir) {
+  if (iDir == DIR_NORTH) return CELL_NORTH;
+  if (iDir == DIR_WEST)  return CELL_WEST;
+  if (iDir == DIR_SOUTH) return CELL_SOUTH;
+  if (iDir == DIR_EAST)  return CELL_EAST;
+  return CELL_NONE;
+}
+
+/*******************************************************************************
+ * Name:  goToCell
+ * Purpose: Break into cell in direction.
+ *******************************************************************************/
+void goToCell(int* piDir, int* piX, int* piY) {
+  // Break first wall of cell we come from.
+  g_iGrid[cellXY(*piX, *piY)] /= getDirWall(*piDir);
+
+  if (*piDir == DIR_NORTH) *piY -= 1;
+  if (*piDir == DIR_WEST)  *piX -= 1;
+  if (*piDir == DIR_SOUTH) *piY += 1;
+  if (*piDir == DIR_EAST)  *piX += 1;
+
+  // Break second wall of cell we gone to.
+  g_iGrid[cellXY(*piX, *piY)] /= getDirWall(turnAround(*piDir));
+}
+
+/*******************************************************************************
+ * Name:  goBackAndLookForWholeCell
+ * Purpose: .
+ *******************************************************************************/
+int goBackAndLookForWholeCell(int* piDir, int* piX, int* piY) {
+  // // Break first wall of cell we come from.
+  // g_iGrid[cellXY(*piX, *piY)] /= getDirWall(*piDir);
+
+  if (! isDirCellWhole(*piDir, *piX, *piY)) {
+    ;
+  }
+
+  // if (*piDir == DIR_NORTH) *piY -= 1;
+  // if (*piDir == DIR_WEST)  *piX -= 1;
+  // if (*piDir == DIR_SOUTH) *piY += 1;
+  // if (*piDir == DIR_EAST)  *piX += 1;
+
+  // // Break second wall of cell we gone to.
+  // g_iGrid[cellXY(*piX, *piY)] /= getDirWall(turnAround(*piDir));
+
+  return 0;
+}
+
+/*******************************************************************************
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-void goToNextNewCell(int* piX, int* piY) {
-  int iDir = randI(4);
-
-  // Try not to go over the border.
-  while (isBorder(iDir, *piX, *piY)) {
-    iDir = randI(4);
-  }
-
+void goToNextNewCell(int* piDir, int* piX, int* piY) {
   // Try to go to next cell in direction dir.
-  if (isWall(iDir, *piX, *piY)) {
+  if (isDirCellWhole(*piDir, *piX, *piY)) {
     // Break wall in direction and go to that cell.
+    goToCell(piDir, piX, piY);
+  }
+  else {
+    // Go back one cell, until a whole cell is found..
+    while (! isDirCellWhole(*piDir, *piX, *piY)) {
+      goBackAndLookForWholeCell(piDir, piX, piY);
+    }
   }
   // If hit wall get random dir until a unused cell is in front.
   // If cell is used go one step back and get random dir until a unused cell is in front.
@@ -373,7 +439,6 @@ void goToNextNewCell(int* piX, int* piY) {
  *******************************************************************************/
 void generateMaze(int* piGridX, int* piGridY) {
   int iSize      = g_tOpts.sGridX * g_tOpts.sGridY;
-  int iInit      = CELL_EAST * CELL_NORTH * CELL_SOUTH * CELL_WEST;
   int iCell      = 0;
   int iDir       = 0;
   int iX         = 0;
@@ -381,7 +446,7 @@ void generateMaze(int* piGridX, int* piGridY) {
   int iCellCount = 0;
 
   // Init the grid's cells.
-  for (int i = 0; i < iSize; ++i) g_iGrid[i] = iInit;
+  for (int i = 0; i < iSize; ++i) g_iGrid[i] = CELL_WHOLE;
 
   // Get an entry cell a the edge.
   //   X 0   1   2
@@ -397,19 +462,19 @@ void generateMaze(int* piGridX, int* piGridY) {
   iDir = randI(4);
 
   // Get the right edge for the starting cell ...
-  if (iDir == GO_NORTH) iY = g_tOpts.sGridY - 1;    // South border
-  if (iDir == GO_WEST)  iX = g_tOpts.sGridX - 1;    // East  border
-  if (iDir == GO_SOUTH) iY = 0;                     // North border
-  if (iDir == GO_EAST)  iX = 0;                     // West  border
+  if (iDir == DIR_NORTH) iY = g_tOpts.sGridY - 1;    // South border
+  if (iDir == DIR_WEST)  iX = g_tOpts.sGridX - 1;    // East  border
+  if (iDir == DIR_SOUTH) iY = 0;                     // North border
+  if (iDir == DIR_EAST)  iX = 0;                     // West  border
   // ... and break the first wall in appropriate border for the exit.
-  if (iDir == GO_NORTH) g_iGrid[cellFromXY(iX, iY)] /= CELL_SOUTH;
-  if (iDir == GO_WEST)  g_iGrid[cellFromXY(iX, iY)] /= CELL_EAST;
-  if (iDir == GO_SOUTH) g_iGrid[cellFromXY(iX, iY)] /= CELL_NORTH;
-  if (iDir == GO_EAST)  g_iGrid[cellFromXY(iX, iY)] /= CELL_WEST;
+  if (iDir == DIR_NORTH) g_iGrid[cellXY(iX, iY)] /= CELL_SOUTH;
+  if (iDir == DIR_WEST)  g_iGrid[cellXY(iX, iY)] /= CELL_EAST;
+  if (iDir == DIR_SOUTH) g_iGrid[cellXY(iX, iY)] /= CELL_NORTH;
+  if (iDir == DIR_EAST)  g_iGrid[cellXY(iX, iY)] /= CELL_WEST;
 
   // Walk through the maze and break walls until no cell is left to break into.
   while (iCellCount < iSize) {
-    goToNextNewCell(&iX, &iY);
+    goToNextNewCell(&iDir, &iX, &iY);
     ++iCellCount;
   }
 
@@ -461,7 +526,7 @@ void clearScreen(void) {
  * Purpose: .
  *******************************************************************************/
 void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWall) {
-  if (g_iGrid[cellFromXY(iX, iY)] % iWall == 0)
+  if (g_iGrid[cellXY(iX, iY)] % iWall == 0)
     printf("%s", cWall);
   else
     printf("%s", cNoWall);
