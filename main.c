@@ -62,9 +62,6 @@ cstr g_csMename;
 
 #define STACK_EMPTY (~0)
 
-#define TCELL_INIT   {-1, -1, -1}
-#define TCELL_NO_VAL (-1)
-
 
 //******************************************************************************
 //* outsourced standard functions, includes and defines
@@ -77,20 +74,14 @@ cstr g_csMename;
 
 // Arguments and options.
 typedef struct s_options {
-  int iGridX;
-  int iGridY;
+  int iSizeX;
+  int iSizeY;
 } t_options;
 
 typedef struct s_stack {
   int*   piCell;
   size_t sStackPtr;
 } t_stack;
-
-typedef struct s_cell {
-  int iX;
-  int iY;
-  int iCell;
-} t_cell;
 
 s_array(cstr);
 
@@ -177,8 +168,8 @@ void getOptions(int argc, char* argv[]) {
   char cOpt   = 0;
 
   // Set defaults.
-  g_tOpts.iGridX = 20;
-  g_tOpts.iGridY = 10;
+  g_tOpts.iSizeX = 20;
+  g_tOpts.iSizeY = 10;
 
   // Init free argument's dynamic array.
   daInit(cstr, g_tArgs);
@@ -212,12 +203,12 @@ next_argument:
           version();
         }
         if (cOpt == 'x') {
-          if (! getArgLong((ll*) &g_tOpts.iGridX, &iArg, argc, argv, ARG_CLI, NULL))
+          if (! getArgLong((ll*) &g_tOpts.iSizeX, &iArg, argc, argv, ARG_CLI, NULL))
             dispatchError(ERR_ARGS, "No valid x or missing");
           continue;
         }
         if (cOpt == 'y') {
-          if (! getArgLong((ll*) &g_tOpts.iGridY, &iArg, argc, argv, ARG_CLI, NULL))
+          if (! getArgLong((ll*) &g_tOpts.iSizeY, &iArg, argc, argv, ARG_CLI, NULL))
             dispatchError(ERR_ARGS, "No valid y or missing");
           continue;
         }
@@ -232,14 +223,14 @@ next_argument:
   // Sanity check of arguments and flags.
   if (g_tArgs.sCount != 0) dispatchError(ERR_ARGS, "No file needed");
 
-  if (g_tOpts.iGridX < 0 || g_tOpts.iGridX > GRID_MAX)
+  if (g_tOpts.iSizeX < 0 || g_tOpts.iSizeX > GRID_MAX)
     dispatchError(ERR_ARGS, "x dimension out of bounds");
-  if (g_tOpts.iGridY < 0 || g_tOpts.iGridY > GRID_MAX)
+  if (g_tOpts.iSizeY < 0 || g_tOpts.iSizeY > GRID_MAX)
     dispatchError(ERR_ARGS, "y dimension out of bounds");
 
   // Grid and max stack.
-  g_iGrid         = (int*) malloc(g_tOpts.iGridX * g_tOpts.iGridY * sizeof(int));
-  g_tStack.piCell = (int*) malloc(g_tOpts.iGridX * g_tOpts.iGridY * sizeof(int));
+  g_iGrid         = (int*) malloc(g_tOpts.iSizeX * g_tOpts.iSizeY * sizeof(int));
+  g_tStack.piCell = (int*) malloc(g_tOpts.iSizeX * g_tOpts.iSizeY * sizeof(int));
 
   // Init stack pointer.
   g_tStack.sStackPtr = STACK_EMPTY;
@@ -303,61 +294,41 @@ int randIab(int iFrom, int iTo) {
 }
 
 /*******************************************************************************
- * Name:  cellToXY
+ * Name:  xy2cell
+ * Purpose: Calculates the cell offset from given X and Y coordinates.
+ *******************************************************************************/
+int xy2cell(int iX, int iY) {
+  return iX + iY * g_tOpts.iSizeX;
+}
+
+/*******************************************************************************
+ * Name:  cell2xy
  * Purpose: Converts a cell index into x and y coordinates.
  *******************************************************************************/
-t_cell cellToXY(t_cell tCell) {
-  tCell.iX = tCell.iCell % g_tOpts.iGridX;
-  tCell.iY = tCell.iCell / g_tOpts.iGridX;
-  return tCell;
+void cell2xy(int iCell, int* piX, int* piY) {
+  *piX = iCell % g_tOpts.iSizeX;
+  *piY = iCell / g_tOpts.iSizeX;
 }
 
 /*******************************************************************************
- * Name:  cellFromXY
- * Purpose: Converts x and y coordinates into a cell index.
- *******************************************************************************/
-t_cell cellFromXY(t_cell tCell) {
-  tCell.iCell = tCell.iX + g_tOpts.iGridX * tCell.iY;
-  return tCell;
-}
-
-/*******************************************************************************
- * Name:  cellXY
- * Purpose: Calculates the cell offset from given X and Y coordinates.
- *******************************************************************************/
-t_cell cellNXY(t_cell tCell) {
-  if (tCell.iX    == TCELL_NO_VAL) tCell = cellToXY(tCell);
-  if (tCell.iCell == TCELL_NO_VAL) tCell = cellFromXY(tCell);
-  return tCell;
-}
-
-/*******************************************************************************
- * Name:  cellXY
- * Purpose: Calculates the cell offset from given X and Y coordinates.
- *******************************************************************************/
-int cellXY(int iX, int iY) {
-  return iX + iY * g_tOpts.iGridX;
-}
-
-/*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  turnRight
+ * Purpose: Turn direction one step to the right.
  *******************************************************************************/
 int turnRight(int iDir) {
   return (iDir + 1) % DIR_MOD;
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  turnBack
+ * Purpose: Turn direction to the oposit direction.
  *******************************************************************************/
 int turnBack(int iDir) {
   return (iDir + 2) % DIR_MOD;
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  turnLeft
+ * Purpose: Turn direction one step to the left.
  *******************************************************************************/
 int turnLeft(int iDir) {
   return (iDir + 3) % DIR_MOD;
@@ -367,11 +338,14 @@ int turnLeft(int iDir) {
  * Name:  isBorder
  * Purpose: Returns true if iDir points beyond cells.
  *******************************************************************************/
-int isBorder(int iDir, int iX, int iY) {
+int isBorder(int iDir, int iCell) {
+  int iX = 0;
+  int iY = 0;
+  cell2xy(iCell, &iX, &iY);
   if (iDir == DIR_NORTH && iY == 0)                  return 1;
   if (iDir == DIR_WEST  && iX == 0)                  return 1;
-  if (iDir == DIR_SOUTH && iY == g_tOpts.iGridY - 1) return 1;
-  if (iDir == DIR_EAST  && iX == g_tOpts.iGridX - 1) return 1;
+  if (iDir == DIR_SOUTH && iY == g_tOpts.iSizeY - 1) return 1;
+  if (iDir == DIR_EAST  && iX == g_tOpts.iSizeX - 1) return 1;
   return 0;
 }
 
@@ -379,8 +353,8 @@ int isBorder(int iDir, int iX, int iY) {
  * Name:  isDirWall
  * Purpose: Returns true if iDir points to an open wall.
  *******************************************************************************/
-int isDirWall(int iDir, int iX, int iY) {
-  int iCell = g_iGrid[cellXY(iX, iY)];
+int isDirWall(int iDir, int iCell) {
+  iCell = g_iGrid[iCell];
   if (iDir == DIR_NORTH && iCell % CELL_NORTH == 0) return 1;
   if (iDir == DIR_WEST  && iCell % CELL_WEST  == 0) return 1;
   if (iDir == DIR_SOUTH && iCell % CELL_SOUTH == 0) return 1;
@@ -392,13 +366,13 @@ int isDirWall(int iDir, int iX, int iY) {
  * Name:  isDirCellWhole
  * Purpose: Returns true if next cell in iDir is whole.
  *******************************************************************************/
-int isDirCellWhole(int iDir, int iX, int iY) {
-  if (isBorder(iDir, iX, iY)) return 0;
-  if (isDirWall(iDir, iX, iY)) return 0;
-  if (iDir == DIR_NORTH && g_iGrid[cellXY(iX,     iY - 1)] == CELL_WHOLE) return 1;
-  if (iDir == DIR_WEST  && g_iGrid[cellXY(iX - 1, iY    )] == CELL_WHOLE) return 1;
-  if (iDir == DIR_SOUTH && g_iGrid[cellXY(iX,     iY + 1)] == CELL_WHOLE) return 1;
-  if (iDir == DIR_EAST  && g_iGrid[cellXY(iX + 1, iY    )] == CELL_WHOLE) return 1;
+int isDirCellWhole(int iDir, int iCell) {
+  if (isBorder(iDir, iCell))  return 0;
+  if (isDirWall(iDir, iCell)) return 0;
+  if (iDir == DIR_NORTH && g_iGrid[iCell - g_tOpts.iSizeX] == CELL_WHOLE) return 1;
+  if (iDir == DIR_WEST  && g_iGrid[iCell - 1]              == CELL_WHOLE) return 1;
+  if (iDir == DIR_SOUTH && g_iGrid[iCell + g_tOpts.iSizeX] == CELL_WHOLE) return 1;
+  if (iDir == DIR_EAST  && g_iGrid[iCell + 1]              == CELL_WHOLE) return 1;
   return 0;
 }
 
@@ -406,8 +380,7 @@ int isDirCellWhole(int iDir, int iX, int iY) {
  * Name:  getOpenWalls
  * Purpose: Returns which walls in cell is open.
  *******************************************************************************/
-int getOpenWalls(int iX, int iY) {
-  int iCell  = cellXY(iX, iY);
+int getOpenWalls(int iCell) {
   int iWalls = 1;
   if (g_iGrid[iCell] % CELL_NORTH == 0) iWalls *= CELL_NORTH;
   if (g_iGrid[iCell] % CELL_WEST  == 0) iWalls *= CELL_WEST;
@@ -432,43 +405,43 @@ int getDirWall(int iDir) {
  * Name:  goToCell
  * Purpose: Just go to cell in direction.
  *******************************************************************************/
-void goToCell(int* piDir, int* piX, int* piY) {
-  if (*piDir == DIR_NORTH) *piY -= 1;
-  if (*piDir == DIR_WEST)  *piX -= 1;
-  if (*piDir == DIR_SOUTH) *piY += 1;
-  if (*piDir == DIR_EAST)  *piX += 1;
+void goToCell(int* piDir, int* piCell) {
+  if (*piDir == DIR_NORTH) *piCell -= g_tOpts.iSizeX;
+  if (*piDir == DIR_WEST)  *piCell -= 1;
+  if (*piDir == DIR_SOUTH) *piCell += g_tOpts.iSizeX;
+  if (*piDir == DIR_EAST)  *piCell += 1;
 }
 
 /*******************************************************************************
  * Name:  breakIntoCell
  * Purpose: Break into cell in direction.
  *******************************************************************************/
-void breakIntoCell(int* piDir, int* piX, int* piY) {
+void breakIntoCell(int* piDir, int* piCell) {
   // Break first wall of cell we come from.
-  g_iGrid[cellXY(*piX, *piY)] /= getDirWall(*piDir);
+  g_iGrid[*piCell] /= getDirWall(*piDir);
 
-  goToCell(piDir, piX, piY);
+  goToCell(piDir, piCell);
 
   // Break second wall of cell we gone to.
-  g_iGrid[cellXY(*piX, *piY)] /= getDirWall(turnBack(*piDir));
+  g_iGrid[*piCell] /= getDirWall(turnBack(*piDir));
 }
 
 /*******************************************************************************
  * Name:  goBackAndLookForWholeCell
  * Purpose: .
  *******************************************************************************/
-int goBackAndLookForWholeCell(int* piDir, int* piX, int* piY) {
+int goBackAndLookForWholeCell(int* piDir, int* piCell) {
   int iLeft    = turnLeft(*piDir);
   int iBack    = turnBack(*piDir);
   int iRight   = turnRight(*piDir);
-  int fLeftOK  = isDirCellWhole(iLeft,  *piX, *piY);
-  int fBackOK  = isDirCellWhole(iBack,  *piX, *piY);
-  int fRightOK = isDirCellWhole(iRight, *piX, *piY);
+  int fLeftOK  = isDirCellWhole(iLeft,  *piCell);
+  int fBackOK  = isDirCellWhole(iBack,  *piCell);
+  int fRightOK = isDirCellWhole(iRight, *piCell);
 
   // Go back one step.
   ;
 
-  if (! isDirCellWhole(*piDir, *piX, *piY)) {
+  if (! isDirCellWhole(*piDir, *piCell)) {
     //
   }
   else {
@@ -484,16 +457,16 @@ int goBackAndLookForWholeCell(int* piDir, int* piX, int* piY) {
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-void goToNextNewCell(int* piDir, int* piX, int* piY) {
+void goToNextNewCell(int* piDir, int* piCell) {
   // Try to go to next cell in direction dir.
-  if (isDirCellWhole(*piDir, *piX, *piY)) {
+  if (isDirCellWhole(*piDir, *piCell)) {
     // Break wall in direction and go to that cell.
-    breakIntoCell(piDir, piX, piY);
+    breakIntoCell(piDir, piCell);
   }
   else {
     // Go back one cell, until a whole cell is found..
-    while (! isDirCellWhole(*piDir, *piX, *piY)) {
-      goBackAndLookForWholeCell(piDir, piX, piY);
+    while (! isDirCellWhole(*piDir, *piCell)) {
+      goBackAndLookForWholeCell(piDir, piCell);
     }
   }
 
@@ -527,8 +500,8 @@ void pushCell(int iCell) {
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-void generateMaze(int* piGridX, int* piGridY) {
-  int iSize      = g_tOpts.iGridX * g_tOpts.iGridY;
+void generateMaze(int* piCell) {
+  int iSize      = g_tOpts.iSizeX * g_tOpts.iSizeY;
   int iCell      = 0;
   int iDir       = 0;
   int iX         = 0;
@@ -547,18 +520,18 @@ void generateMaze(int* piGridX, int* piGridY) {
   //   +---+---+---+       |
   // 2 |   |   |   |       S
   //   +---+---+---+
-  iX   = randI(g_tOpts.iGridX);
-  iY   = randI(g_tOpts.iGridY);
+  iX   = randI(g_tOpts.iSizeX);
+  iY   = randI(g_tOpts.iSizeY);
   iDir = randI(4);
 
   // Get the right edge for the starting cell ...
-  if (iDir == DIR_NORTH) iY = g_tOpts.iGridY - 1;    // South border
-  if (iDir == DIR_WEST)  iX = g_tOpts.iGridX - 1;    // East  border
+  if (iDir == DIR_NORTH) iY = g_tOpts.iSizeY - 1;    // South border
+  if (iDir == DIR_WEST)  iX = g_tOpts.iSizeX - 1;    // East  border
   if (iDir == DIR_SOUTH) iY = 0;                     // North border
   if (iDir == DIR_EAST)  iX = 0;                     // West  border
 
   // ... save cell for future use ;o) ...
-  iCell = cellXY(iX, iY);
+  iCell = xy2cell(iX, iY);
 
   // ... and break the first wall in appropriate border for the exit.
   if (iDir == DIR_NORTH) g_iGrid[iCell] /= CELL_SOUTH;
@@ -571,20 +544,20 @@ void generateMaze(int* piGridX, int* piGridY) {
 
   // Walk through the maze and break walls until no cell is left to break into.
   while (iCellCount < iSize) {
-    goToNextNewCell(&iDir, &iX, &iY);
+    goToNextNewCell(&iDir, &iCell);
+    pushCell(iCell);
     ++iCellCount;
   }
 
   // Last cell will be the starting point.
-  *piGridX = iX;
-  *piGridY = iY;
+  *piCell = iCell;
 }
 
 /*******************************************************************************
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-int waitForNextKey(int iCellDir) {
+int waitForNextKey(int iDir) {
   int c = 0;
 
   while (1) {
@@ -606,7 +579,7 @@ int waitForNextKey(int iCellDir) {
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-void moveInGrid(int iCellDir, int* piGridX, int* piGridY) {
+void moveInGrid(int iDir, int* piCell) {
   ;
 }
 
@@ -623,7 +596,7 @@ void clearScreen(void) {
  * Purpose: .
  *******************************************************************************/
 void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWall) {
-  if (g_iGrid[cellXY(iX, iY)] % iWall == 0)
+  if (g_iGrid[xy2cell(iX, iY)] % iWall == 0)
     printf("%s", cWall);
   else
     printf("%s", cNoWall);
@@ -633,7 +606,7 @@ void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWa
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-void printMaze(int iCellDir, int iGridX, int iGridY) {
+void printMaze(int iDir, int iCell) {
   char* cCorner     = "+";
   char* cWallNS     = "---+";
   char* cNoWallNS   = "   +";
@@ -645,6 +618,11 @@ void printMaze(int iCellDir, int iGridX, int iGridY) {
   char* cNoWallW    = " ";
   char* cWall       = NULL;
   char* cNoWall     = NULL;
+  int   iSizeX      = 0;
+  int   iSizeY      = 0;
+
+  // Get maze coordinates.
+  cell2xy(iCell, &iSizeX, &iSizeY);
 
   // +---+---+---+     N   N   N
   // |   |   |   |   W   E   E   E
@@ -656,15 +634,15 @@ void printMaze(int iCellDir, int iGridX, int iGridY) {
 
   // First upper cell line
   printf("%s", cCorner);
-  for (int x = 0; x < g_tOpts.iGridX; ++x)
+  for (int x = 0; x < g_tOpts.iSizeX; ++x)
     printWallIf(x, 0, CELL_NORTH, cWallNS, cNoWallNS);
   printf("\n");
 
-  for (int y = 0; y < g_tOpts.iGridY; ++y) {
+  for (int y = 0; y < g_tOpts.iSizeY; ++y) {
 
     printWallIf(0, y, CELL_WEST, cWallW, cNoWallW);
-    for (int x = 0; x < g_tOpts.iGridX; ++x) {
-      if (y == iGridY && x == iGridX) {
+    for (int x = 0; x < g_tOpts.iSizeX; ++x) {
+      if (y == iSizeY && x == iSizeX) {
         cWall   = cWallEPos;
         cNoWall = cNoWallEPos;
       }
@@ -677,7 +655,7 @@ void printMaze(int iCellDir, int iGridX, int iGridY) {
     printf("\n");
 
     printf("%s", cCorner);
-    for (int x = 0; x < g_tOpts.iGridX; ++x)
+    for (int x = 0; x < g_tOpts.iSizeX; ++x)
       printWallIf(x, y, CELL_SOUTH, cWallNS, cNoWallNS);
     printf("\n");
 
@@ -688,7 +666,7 @@ void printMaze(int iCellDir, int iGridX, int iGridY) {
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-void print3DView(int iCellDir, int iGridX, int iGridY) {
+void print3DView(int iDir, int iCell) {
 }
 
 
@@ -696,9 +674,8 @@ void print3DView(int iCellDir, int iGridX, int iGridY) {
 //* main
 
 int main(int argc, char *argv[]) {
-  int iCellDir = 0;
-  int iGridX   = 0;
-  int iGridY   = 0;
+  int iDir  = 0;
+  int iCell = 0;
 
   // Save program's name.
   getMename(&g_csMename, argv[0]);
@@ -709,15 +686,15 @@ int main(int argc, char *argv[]) {
   initRand();
 
   // Start game ...
-  generateMaze(&iGridX, &iGridY);
+  generateMaze(&iCell);
 
   // .. and loop game interactions.
   while (1) {
-    iCellDir = waitForNextKey(iCellDir);
-    moveInGrid(iCellDir, &iGridX, &iGridY);
+    iDir = waitForNextKey(iDir);
+    moveInGrid(iDir, &iCell);
     clearScreen();
-    printMaze(iCellDir, iGridX, iGridY);
-    print3DView(iCellDir, iGridX, iGridY);
+    printMaze(iDir, iCell);
+    print3DView(iDir, iCell);
   }
 
   // Free all used memory, prior end of program.
