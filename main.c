@@ -37,12 +37,13 @@ cstr g_csMename;
 #define sERR_FILE  "File error"
 #define sERR_ELSE  "Unknown error"
 
-// Walls in grid.      //     N          2
-#define CELL_NORTH 2   //     |          |
-#define CELL_WEST  3   // W --+-- E  3 --+-- 5
-#define CELL_SOUTH 5   //     |          |
-#define CELL_EAST  7   //     S          7
-#define CELL_NONE  0
+// Walls in grid.        //     N          2
+#define CELL_NORTH   2   //     |          |
+#define CELL_WEST    3   // W --+-- E  3 --+-- 5
+#define CELL_SOUTH   5   //     |          |
+#define CELL_EAST    7   //     S          7
+#define CELL_NONE    0
+#define CELL_BORDER -1
 #define CELL_WHOLE (CELL_NORTH * CELL_WEST * CELL_SOUTH * CELL_EAST)
 // The prime numbers multiplied equal 210 = 2 * 3 * 5 * 7
 
@@ -74,9 +75,20 @@ cstr g_csMename;
 
 // Arguments and options.
 typedef struct s_options {
-  int iSizeX;
-  int iSizeY;
+  int iMazeW;
+  int iMazeH;
 } t_options;
+
+// Arguments and options.
+typedef struct s_grid {
+  int  iMazeW;      // Width of maze
+  int  iMazeH;      // Height of maze
+  int  iGridW;      // = iMazeW + border (2)
+  int  iGridH;      // = iMazeH + border (2)
+  int  iMazeCount;  // = iMazeW * iMazeH
+  int  iGridCount;  // = iGridW * iGridH
+  int* piCell;
+} t_grid;
 
 typedef struct s_stack {
   int*   piCell;
@@ -92,7 +104,7 @@ s_array(cstr);
 // Arguments
 t_options     g_tOpts;  // CLI options and arguments.
 t_array(cstr) g_tArgs;  // Free arguments.
-int*          g_iGrid;  // The maze's grid.
+t_grid        g_tMaze;  // The maze's grid.
 t_stack       g_tStack; // Stack for back-propagating while maze's creation.
 
 
@@ -112,13 +124,13 @@ void usage(int iErr, const char* pcMsg) {
 
   csSetf(&csMsg, "%s"
 //|************************ 80 chars width ****************************************|
-   "usage: %s [-x n] [-y n]\n"
-   "       %s [-h|--help|-v|--version]\n"
+   "usage: %s [-w n] [-h n]\n"
+   "       %s [--help|-v|--version]\n"
    " Creates a maze with pseudo 3D look.\n"
    " You can walk with the ijkl or wasd keys.\n"
-   "  -x n:          x dimension of maze's grid (default 20)\n"
-   "  -y n:          y dimension of maze's grid (default 10)\n"
-   "  -h|--help:     print this help\n"
+   "  -w n:          width of maze's grid (default 20)\n"
+   "  -h n:          height of maze's grid (default 10)\n"
+   "  --help:        print this help\n"
    "  -v|--version:  print version of program\n"
 //|************************ 80 chars width ****************************************|
          ,csMsg.cStr,
@@ -168,8 +180,8 @@ void getOptions(int argc, char* argv[]) {
   char cOpt   = 0;
 
   // Set defaults.
-  g_tOpts.iSizeX = 20;
-  g_tOpts.iSizeY = 10;
+  g_tOpts.iMazeW = 20;
+  g_tOpts.iMazeH = 10;
 
   // Init free argument's dynamic array.
   daInit(cstr, g_tArgs);
@@ -196,20 +208,17 @@ next_argument:
     if (csArgv.cStr[0] == '-') {
       for (iChar = 1; iChar < csArgv.len; ++iChar) {
         cOpt = csArgv.cStr[iChar];
-        if (cOpt == 'h') {
-          usage(ERR_NOERR, "");
-        }
         if (cOpt == 'v') {
           version();
         }
-        if (cOpt == 'x') {
-          if (! getArgLong((ll*) &g_tOpts.iSizeX, &iArg, argc, argv, ARG_CLI, NULL))
-            dispatchError(ERR_ARGS, "No valid x or missing");
+        if (cOpt == 'w') {
+          if (! getArgLong((ll*) &g_tOpts.iMazeW, &iArg, argc, argv, ARG_CLI, NULL))
+            dispatchError(ERR_ARGS, "No valid width or missing");
           continue;
         }
-        if (cOpt == 'y') {
-          if (! getArgLong((ll*) &g_tOpts.iSizeY, &iArg, argc, argv, ARG_CLI, NULL))
-            dispatchError(ERR_ARGS, "No valid y or missing");
+        if (cOpt == 'h') {
+          if (! getArgLong((ll*) &g_tOpts.iMazeH, &iArg, argc, argv, ARG_CLI, NULL))
+            dispatchError(ERR_ARGS, "No valid height or missing");
           continue;
         }
         dispatchError(ERR_ARGS, "Invalid short option");
@@ -223,14 +232,22 @@ next_argument:
   // Sanity check of arguments and flags.
   if (g_tArgs.sCount != 0) dispatchError(ERR_ARGS, "No file needed");
 
-  if (g_tOpts.iSizeX < 0 || g_tOpts.iSizeX > GRID_MAX)
+  if (g_tOpts.iMazeW < 0 || g_tOpts.iMazeW > GRID_MAX)
     dispatchError(ERR_ARGS, "x dimension out of bounds");
-  if (g_tOpts.iSizeY < 0 || g_tOpts.iSizeY > GRID_MAX)
+  if (g_tOpts.iMazeH < 0 || g_tOpts.iMazeH > GRID_MAX)
     dispatchError(ERR_ARGS, "y dimension out of bounds");
 
-  // Grid and max stack.
-  g_iGrid         = (int*) malloc(g_tOpts.iSizeX * g_tOpts.iSizeY * sizeof(int));
-  g_tStack.piCell = (int*) malloc(g_tOpts.iSizeX * g_tOpts.iSizeY * sizeof(int));
+  // Set grid values.
+  g_tMaze.iMazeW = g_tOpts.iMazeW;
+  g_tMaze.iMazeH = g_tOpts.iMazeH;
+  g_tMaze.iGridW = g_tOpts.iMazeW + 2;
+  g_tMaze.iGridH = g_tOpts.iMazeH + 2;
+  g_tMaze.iMazeCount  = g_tMaze.iMazeW * g_tMaze.iMazeH;
+  g_tMaze.iGridCount = g_tMaze.iGridW * g_tMaze.iGridH;
+
+  // Grid and max stack. Grid will have a border with special value.
+  g_tStack.piCell = (int*) malloc(g_tMaze.iMazeCount  * sizeof(int));
+  g_tMaze.piCell  = (int*) malloc(g_tMaze.iGridCount * sizeof(int));
 
   // Init stack pointer.
   g_tStack.sStackPtr = STACK_EMPTY;
@@ -298,7 +315,7 @@ int randIab(int iFrom, int iTo) {
  * Purpose: Calculates the cell offset from given X and Y coordinates.
  *******************************************************************************/
 int xy2cell(int iX, int iY) {
-  return iX + iY * g_tOpts.iSizeX;
+  return iX + iY * g_tMaze.iGridW;
 }
 
 /*******************************************************************************
@@ -306,8 +323,25 @@ int xy2cell(int iX, int iY) {
  * Purpose: Converts a cell index into x and y coordinates.
  *******************************************************************************/
 void cell2xy(int iCell, int* piX, int* piY) {
-  *piX = iCell % g_tOpts.iSizeX;
-  *piY = iCell / g_tOpts.iSizeX;
+  *piX = iCell % g_tMaze.iGridW;
+  *piY = iCell / g_tMaze.iGridW;
+}
+
+/*******************************************************************************
+ * Name:  .
+ * Purpose: .
+ *******************************************************************************/
+int pullCell(void) {
+  if (g_tStack.sStackPtr == STACK_EMPTY) return -1;
+  return g_tStack.piCell[--g_tStack.sStackPtr];
+}
+
+/*******************************************************************************
+ * Name:  .
+ * Purpose: .
+ *******************************************************************************/
+void pushCell(int iCell) {
+  g_tStack.piCell[g_tStack.sStackPtr++] = iCell;
 }
 
 /*******************************************************************************
@@ -335,30 +369,36 @@ int turnLeft(int iDir) {
 }
 
 /*******************************************************************************
+ * Name:  getCellInDir
+ * Purpose: Returns content of next cell in direction iDir.
+ *******************************************************************************/
+int getCellInDir(int iDir, int iCell) {
+  if (iDir == DIR_NORTH) return g_tMaze.piCell[iCell - g_tMaze.iGridW];
+  if (iDir == DIR_WEST)  return g_tMaze.piCell[iCell - 1];
+  if (iDir == DIR_SOUTH) return g_tMaze.piCell[iCell + g_tMaze.iGridW];
+  if (iDir == DIR_EAST)  return g_tMaze.piCell[iCell + 1];
+  return -1;
+}
+
+/*******************************************************************************
  * Name:  isBorder
  * Purpose: Returns true if iDir points beyond cells.
  *******************************************************************************/
 int isBorder(int iDir, int iCell) {
-  int iX = 0;
-  int iY = 0;
-  cell2xy(iCell, &iX, &iY);
-  if (iDir == DIR_NORTH && iY == 0)                  return 1;
-  if (iDir == DIR_WEST  && iX == 0)                  return 1;
-  if (iDir == DIR_SOUTH && iY == g_tOpts.iSizeY - 1) return 1;
-  if (iDir == DIR_EAST  && iX == g_tOpts.iSizeX - 1) return 1;
+  if (getCellInDir(iDir, iCell) == CELL_BORDER) return 1;
   return 0;
 }
 
 /*******************************************************************************
  * Name:  isDirWall
- * Purpose: Returns true if iDir points to an open wall.
+ * Purpose: Returns true if iDir points to a wall.
  *******************************************************************************/
 int isDirWall(int iDir, int iCell) {
-  iCell = g_iGrid[iCell];
-  if (iDir == DIR_NORTH && iCell % CELL_NORTH == 0) return 1;
-  if (iDir == DIR_WEST  && iCell % CELL_WEST  == 0) return 1;
-  if (iDir == DIR_SOUTH && iCell % CELL_SOUTH == 0) return 1;
-  if (iDir == DIR_EAST  && iCell % CELL_EAST  == 0) return 1;
+  iCell = g_tMaze.piCell[iCell];
+  if (iDir == DIR_NORTH && iCell % CELL_NORTH != 0) return 1;
+  if (iDir == DIR_WEST  && iCell % CELL_WEST  != 0) return 1;
+  if (iDir == DIR_SOUTH && iCell % CELL_SOUTH != 0) return 1;
+  if (iDir == DIR_EAST  && iCell % CELL_EAST  != 0) return 1;
   return 0;
 }
 
@@ -369,10 +409,8 @@ int isDirWall(int iDir, int iCell) {
 int isDirCellWhole(int iDir, int iCell) {
   if (isBorder(iDir, iCell))  return 0;
   if (isDirWall(iDir, iCell)) return 0;
-  if (iDir == DIR_NORTH && g_iGrid[iCell - g_tOpts.iSizeX] == CELL_WHOLE) return 1;
-  if (iDir == DIR_WEST  && g_iGrid[iCell - 1]              == CELL_WHOLE) return 1;
-  if (iDir == DIR_SOUTH && g_iGrid[iCell + g_tOpts.iSizeX] == CELL_WHOLE) return 1;
-  if (iDir == DIR_EAST  && g_iGrid[iCell + 1]              == CELL_WHOLE) return 1;
+
+  if (getCellInDir(iDir, iCell) == CELL_WHOLE) return 1;
   return 0;
 }
 
@@ -382,10 +420,10 @@ int isDirCellWhole(int iDir, int iCell) {
  *******************************************************************************/
 int getOpenWalls(int iCell) {
   int iWalls = 1;
-  if (g_iGrid[iCell] % CELL_NORTH == 0) iWalls *= CELL_NORTH;
-  if (g_iGrid[iCell] % CELL_WEST  == 0) iWalls *= CELL_WEST;
-  if (g_iGrid[iCell] % CELL_SOUTH == 0) iWalls *= CELL_SOUTH;
-  if (g_iGrid[iCell] % CELL_EAST  == 0) iWalls *= CELL_EAST;
+  if (g_tMaze.piCell[iCell] % CELL_NORTH == 0) iWalls *= CELL_NORTH;
+  if (g_tMaze.piCell[iCell] % CELL_WEST  == 0) iWalls *= CELL_WEST;
+  if (g_tMaze.piCell[iCell] % CELL_SOUTH == 0) iWalls *= CELL_SOUTH;
+  if (g_tMaze.piCell[iCell] % CELL_EAST  == 0) iWalls *= CELL_EAST;
   return (iWalls == 1) ? CELL_NONE : iWalls;
 }
 
@@ -405,52 +443,60 @@ int getDirWall(int iDir) {
  * Name:  goToCell
  * Purpose: Just go to cell in direction.
  *******************************************************************************/
-void goToCell(int* piDir, int* piCell) {
-  if (*piDir == DIR_NORTH) *piCell -= g_tOpts.iSizeX;
-  if (*piDir == DIR_WEST)  *piCell -= 1;
-  if (*piDir == DIR_SOUTH) *piCell += g_tOpts.iSizeX;
-  if (*piDir == DIR_EAST)  *piCell += 1;
+void goToCell(int iDir, int* piCell) {
+  if (iDir == DIR_NORTH) *piCell -= g_tMaze.iGridW;
+  if (iDir == DIR_WEST)  *piCell -= 1;
+  if (iDir == DIR_SOUTH) *piCell += g_tMaze.iGridW;
+  if (iDir == DIR_EAST)  *piCell += 1;
 }
 
 /*******************************************************************************
  * Name:  breakIntoCell
  * Purpose: Break into cell in direction.
  *******************************************************************************/
-void breakIntoCell(int* piDir, int* piCell) {
+void breakIntoCell(int iDir, int* piCell) {
   // Break first wall of cell we come from.
-  g_iGrid[*piCell] /= getDirWall(*piDir);
+  g_tMaze.piCell[*piCell] /= getDirWall(iDir);
 
-  goToCell(piDir, piCell);
+  goToCell(iDir, piCell);
 
   // Break second wall of cell we gone to.
-  g_iGrid[*piCell] /= getDirWall(turnBack(*piDir));
+  g_tMaze.piCell[*piCell] /= getDirWall(turnBack(iDir));
 }
 
 /*******************************************************************************
  * Name:  goBackAndLookForWholeCell
  * Purpose: .
  *******************************************************************************/
-int goBackAndLookForWholeCell(int* piDir, int* piCell) {
-  int iLeft    = turnLeft(*piDir);
-  int iBack    = turnBack(*piDir);
-  int iRight   = turnRight(*piDir);
-  int fLeftOK  = isDirCellWhole(iLeft,  *piCell);
-  int fBackOK  = isDirCellWhole(iBack,  *piCell);
-  int fRightOK = isDirCellWhole(iRight, *piCell);
+void goBackAndLookForWholeCell(int* piDir, int* piCell) {
+  int iCell  = pullCell();
+  int iDir   = *piDir;
+  int iWhole = 0;
+  int iLeft  = randI(2);
 
-  // Go back one step.
-  ;
+  while (1) {
+    // Find a whole cell around this cell in all directions.
+    for (int i = 0; i < DIR_MOD; ++i) {
+      if (iLeft)
+        iDir = turnLeft(iDir);
+      else
+        iDir = turnRight(iDir);
 
-  if (! isDirCellWhole(*piDir, *piCell)) {
-    //
+      if (isDirCellWhole(iDir, iCell)) {
+        iWhole = 1;
+        break; // for
+      }
+    }
+
+    if (iWhole) {
+      *piCell = iCell;
+      *piDir  = iDir;
+      break; // while
+    }
+    else {
+      iCell = pullCell();
+    }
   }
-  else {
-    //
-  }
-
-
-
-  return 0;
 }
 
 /*******************************************************************************
@@ -461,96 +507,15 @@ void goToNextNewCell(int* piDir, int* piCell) {
   // Try to go to next cell in direction dir.
   if (isDirCellWhole(*piDir, *piCell)) {
     // Break wall in direction and go to that cell.
-    breakIntoCell(piDir, piCell);
+    breakIntoCell(*piDir, piCell);
   }
   else {
     // Go back one cell, until a whole cell is found..
     while (! isDirCellWhole(*piDir, *piCell)) {
       goBackAndLookForWholeCell(piDir, piCell);
     }
+    breakIntoCell(*piDir, piCell);
   }
-
-// Test git push mit Auth-Token.
-
-  // If hit wall get random dir until a unused cell is in front.
-  // If cell is used go one step back and get random dir until a unused cell is in front.
-  // Break the walls to tha cell and step into it.
-  // Set x and y accordingly to current (next) used cell.
-  ;
-}
-
-/*******************************************************************************
- * Name:  .
- * Purpose: .
- *******************************************************************************/
-int pullCell(void) {
-  if (g_tStack.sStackPtr == STACK_EMPTY) return -1;
-  return g_tStack.piCell[--g_tStack.sStackPtr];
-}
-
-/*******************************************************************************
- * Name:  .
- * Purpose: .
- *******************************************************************************/
-void pushCell(int iCell) {
-  g_tStack.piCell[g_tStack.sStackPtr++] = iCell;
-}
-
-/*******************************************************************************
- * Name:  .
- * Purpose: .
- *******************************************************************************/
-void generateMaze(int* piCell) {
-  int iSize      = g_tOpts.iSizeX * g_tOpts.iSizeY;
-  int iCell      = 0;
-  int iDir       = 0;
-  int iX         = 0;
-  int iY         = 0;
-  int iCellCount = 0;
-
-  // Init the grid's cells.
-  for (int i = 0; i < iSize; ++i) g_iGrid[i] = CELL_WHOLE;
-
-  // Get an entry cell a the edge.
-  //   X 0   1   2
-  // Y +---+---+---+
-  // 0 |   |   |   |       N
-  //   +---+---+---+       |
-  // 1 |   |   |   |   W --+-- E
-  //   +---+---+---+       |
-  // 2 |   |   |   |       S
-  //   +---+---+---+
-  iX   = randI(g_tOpts.iSizeX);
-  iY   = randI(g_tOpts.iSizeY);
-  iDir = randI(4);
-
-  // Get the right edge for the starting cell ...
-  if (iDir == DIR_NORTH) iY = g_tOpts.iSizeY - 1;    // South border
-  if (iDir == DIR_WEST)  iX = g_tOpts.iSizeX - 1;    // East  border
-  if (iDir == DIR_SOUTH) iY = 0;                     // North border
-  if (iDir == DIR_EAST)  iX = 0;                     // West  border
-
-  // ... save cell for future use ;o) ...
-  iCell = xy2cell(iX, iY);
-
-  // ... and break the first wall in appropriate border for the exit.
-  if (iDir == DIR_NORTH) g_iGrid[iCell] /= CELL_SOUTH;
-  if (iDir == DIR_WEST)  g_iGrid[iCell] /= CELL_EAST;
-  if (iDir == DIR_SOUTH) g_iGrid[iCell] /= CELL_NORTH;
-  if (iDir == DIR_EAST)  g_iGrid[iCell] /= CELL_WEST;
-
-  // Save first cell in stack.
-  pushCell(iCell);
-
-  // Walk through the maze and break walls until no cell is left to break into.
-  while (iCellCount < iSize) {
-    goToNextNewCell(&iDir, &iCell);
-    pushCell(iCell);
-    ++iCellCount;
-  }
-
-  // Last cell will be the starting point.
-  *piCell = iCell;
 }
 
 /*******************************************************************************
@@ -596,7 +561,7 @@ void clearScreen(void) {
  * Purpose: .
  *******************************************************************************/
 void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWall) {
-  if (g_iGrid[xy2cell(iX, iY)] % iWall == 0)
+  if (g_tMaze.piCell[xy2cell(iX, iY)] % iWall == 0)
     printf("%s", cWall);
   else
     printf("%s", cNoWall);
@@ -618,11 +583,11 @@ void printMaze(int iDir, int iCell) {
   char* cNoWallW    = " ";
   char* cWall       = NULL;
   char* cNoWall     = NULL;
-  int   iSizeX      = 0;
-  int   iSizeY      = 0;
+  int   iMazeW      = 0;
+  int   iMazeH      = 0;
 
   // Get maze coordinates.
-  cell2xy(iCell, &iSizeX, &iSizeY);
+  cell2xy(iCell, &iMazeW, &iMazeH);
 
   // +---+---+---+     N   N   N
   // |   |   |   |   W   E   E   E
@@ -634,15 +599,15 @@ void printMaze(int iDir, int iCell) {
 
   // First upper cell line
   printf("%s", cCorner);
-  for (int x = 0; x < g_tOpts.iSizeX; ++x)
-    printWallIf(x, 0, CELL_NORTH, cWallNS, cNoWallNS);
+  for (int x = 1; x < g_tMaze.iMazeW + 1; ++x)
+    printWallIf(x, 1, CELL_NORTH, cWallNS, cNoWallNS);
   printf("\n");
 
-  for (int y = 0; y < g_tOpts.iSizeY; ++y) {
+  for (int y = 1; y < g_tMaze.iMazeH + 1; ++y) {
 
-    printWallIf(0, y, CELL_WEST, cWallW, cNoWallW);
-    for (int x = 0; x < g_tOpts.iSizeX; ++x) {
-      if (y == iSizeY && x == iSizeX) {
+    printWallIf(1, y, CELL_WEST, cWallW, cNoWallW);
+    for (int x = 1; x < g_tMaze.iMazeW + 1; ++x) {
+      if (y == iMazeH && x == iMazeW) {
         cWall   = cWallEPos;
         cNoWall = cNoWallEPos;
       }
@@ -655,10 +620,9 @@ void printMaze(int iDir, int iCell) {
     printf("\n");
 
     printf("%s", cCorner);
-    for (int x = 0; x < g_tOpts.iSizeX; ++x)
+    for (int x = 1; x < g_tMaze.iMazeW + 1; ++x)
       printWallIf(x, y, CELL_SOUTH, cWallNS, cNoWallNS);
     printf("\n");
-
   }
 }
 
@@ -667,6 +631,80 @@ void printMaze(int iDir, int iCell) {
  * Purpose: .
  *******************************************************************************/
 void print3DView(int iDir, int iCell) {
+}
+
+/*******************************************************************************
+ * Name:  .
+ * Purpose: .
+ *******************************************************************************/
+void generateMaze(int* piCell) {
+  int iCell      = 0;
+  int iDir       = 0;
+  int iX         = 0;
+  int iY         = 0;
+  int iCellCount = 0;
+
+  // Init the grid's cells and the border.
+  for (int i = 0; i < g_tMaze.iGridCount; ++i)
+    g_tMaze.piCell[i] = CELL_BORDER;
+
+  for (int y = 1; y < g_tMaze.iMazeH + 1; ++y)
+    for (int x = 1; x < g_tMaze.iMazeW + 1; ++x)
+      g_tMaze.piCell[xy2cell(x, y)] = CELL_WHOLE;
+
+// // DEBUG XXX
+  // for (int y = 0; y < g_tMaze.iGridH; ++y) {
+  //   for (int x = 0; x < g_tMaze.iGridW; ++x) {
+  //     printf("% 4d ", g_tMaze.piCell[xy2cell(x, y)]);
+  //   }
+  //   printf("\n");
+  // }
+  // exit(0);
+// // DEBUG XXX
+
+  // Get an entry cell a the edge.
+  //   X 1   2   3
+  // Y +---+---+---+
+  // 1 |   |   |   |       N
+  //   +---+---+---+       |
+  // 2 |   |   |   |   W --+-- E
+  //   +---+---+---+       |
+  // 3 |   |   |   |       S
+  //   +---+---+---+
+  iX   = randIab(1, g_tOpts.iMazeW + 1);
+  iY   = randIab(1, g_tOpts.iMazeH + 1);
+  iDir = randI(4);
+
+  // Get the right edge for the starting cell ...
+  if (iDir == DIR_NORTH) iY = g_tOpts.iMazeH;    // South border
+  if (iDir == DIR_WEST)  iX = g_tOpts.iMazeW;    // East  border
+  if (iDir == DIR_SOUTH) iY = 1;                 // North border
+  if (iDir == DIR_EAST)  iX = 1;                 // West  border
+
+  // ... save cell for future use ;o) ...
+  iCell = xy2cell(iX, iY);
+
+  // ... and break the first wall in appropriate border for the exit.
+  if (iDir == DIR_NORTH) g_tMaze.piCell[iCell] /= CELL_SOUTH;
+  if (iDir == DIR_WEST)  g_tMaze.piCell[iCell] /= CELL_EAST;
+  if (iDir == DIR_SOUTH) g_tMaze.piCell[iCell] /= CELL_NORTH;
+  if (iDir == DIR_EAST)  g_tMaze.piCell[iCell] /= CELL_WEST;
+
+  // Save first cell in stack.
+  pushCell(iCell);
+
+  // Walk through the maze and break walls until no cell is left to break into.
+  while (iCellCount < g_tMaze.iMazeCount) {
+clearScreen();
+printMaze(iDir, iCell);
+    goToNextNewCell(&iDir, &iCell);
+    pushCell(iCell);
+    ++iCellCount;
+// sleep(1);
+  }
+
+  // Last cell will be the starting point.
+  *piCell = iCell;
 }
 
 
@@ -699,7 +737,8 @@ int main(int argc, char *argv[]) {
 
   // Free all used memory, prior end of program.
   daFreeEx(g_tArgs, cStr);
-  free(g_iGrid);
+  free(g_tMaze.piCell);
+  free(g_tStack.piCell);
 
   return ERR_NOERR;
 }
