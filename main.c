@@ -465,62 +465,52 @@ void breakIntoCell(int iDir, int* piCell) {
 }
 
 /*******************************************************************************
- * Name:  goBackAndLookForWholeCell
- * Purpose: .
+ * Name:  isACellAroundWhole
+ * Purpose: Looks if a neighbour cell is whole.
  *******************************************************************************/
-void goBackAndLookForWholeCell(int* piDir, int* piCell) {
-  int iCell  = pullCell();
+int isACellAroundWhole(int* piDir, int iCell) {
   int iDir   = *piDir;
   int iWhole = 0;
   int iLeft  = randI(2);
 
-  while (1) {
-    // Find a whole cell around this cell in all directions.
-    for (int i = 0; i < DIR_MOD; ++i) {
-      if (iLeft)
-        iDir = turnLeft(iDir);
-      else
-        iDir = turnRight(iDir);
+  // Find a whole cell around this cell in all directions.
+  for (int i = 0; i < DIR_MOD; ++i) {
+    if (iLeft)
+      iDir = turnLeft(iDir);
+    else
+      iDir = turnRight(iDir);
 
-      if (isDirCellWhole(iDir, iCell)) {
-        iWhole = 1;
-        break; // for
-      }
-    }
-
-    if (iWhole) {
-      *piCell = iCell;
-      *piDir  = iDir;
-      break; // while
-    }
-    else {
-      iCell = pullCell();
+    if (isDirCellWhole(iDir, iCell)) {
+      iWhole = 1;
+      *piDir = iDir;
+      break;
     }
   }
+
+  return iWhole;
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  goToNextNewCell
+ * Purpose: Search for the next whole cell to break into or signals finish.
  *******************************************************************************/
-void goToNextNewCell(int* piDir, int* piCell) {
-  // Try to go to next cell in direction dir.
-  if (isDirCellWhole(*piDir, *piCell)) {
-    // Break wall in direction and go to that cell.
+int goToNextNewCell(int* piDir, int* piCell) {
+  if (isACellAroundWhole(piDir, *piCell))
     breakIntoCell(*piDir, piCell);
-  }
   else {
-    // Go back one cell, until a whole cell is found..
-    while (! isDirCellWhole(*piDir, *piCell)) {
-      goBackAndLookForWholeCell(piDir, piCell);
+    // Go back one cell, until a whole cell is found.
+    while (! isACellAroundWhole(piDir, *piCell)) {
+      if ((*piCell = pullCell()) == -1)
+        return 1;
     }
     breakIntoCell(*piDir, piCell);
   }
+  return 0;
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  waitForNextKey
+ * Purpose: Waits until a key is pressed.
  *******************************************************************************/
 int waitForNextKey(int iDir) {
   int c = 0;
@@ -557,8 +547,8 @@ void clearScreen(void) {
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  printWallIf
+ * Purpose: Prints a wall if cell contains one in wanted direction.
  *******************************************************************************/
 void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWall) {
   if (g_tMaze.piCell[xy2cell(iX, iY)] % iWall == 0)
@@ -634,15 +624,14 @@ void print3DView(int iDir, int iCell) {
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  generateMaze
+ * Purpose: Generates a complete maze within the border of the grid.
  *******************************************************************************/
 void generateMaze(int* piCell) {
-  int iCell      = 0;
-  int iDir       = 0;
-  int iX         = 0;
-  int iY         = 0;
-  int iCellCount = 0;
+  int iCell = 0;
+  int iDir  = 0;
+  int iX    = 0;
+  int iY    = 0;
 
   // Init the grid's cells and the border.
   for (int i = 0; i < g_tMaze.iGridCount; ++i)
@@ -651,16 +640,6 @@ void generateMaze(int* piCell) {
   for (int y = 1; y < g_tMaze.iMazeH + 1; ++y)
     for (int x = 1; x < g_tMaze.iMazeW + 1; ++x)
       g_tMaze.piCell[xy2cell(x, y)] = CELL_WHOLE;
-
-// // DEBUG XXX
-  // for (int y = 0; y < g_tMaze.iGridH; ++y) {
-  //   for (int x = 0; x < g_tMaze.iGridW; ++x) {
-  //     printf("% 4d ", g_tMaze.piCell[xy2cell(x, y)]);
-  //   }
-  //   printf("\n");
-  // }
-  // exit(0);
-// // DEBUG XXX
 
   // Get an entry cell a the edge.
   //   X 1   2   3
@@ -694,15 +673,14 @@ void generateMaze(int* piCell) {
   pushCell(iCell);
 
   // Walk through the maze and break walls until no cell is left to break into.
-  while (iCellCount < g_tMaze.iMazeCount) {
-clearScreen();
-printMaze(iDir, iCell);
-    goToNextNewCell(&iDir, &iCell);
+  while (1) {
+    clearScreen();
+    printMaze(iDir, iCell);
+// sleep(1); // DEBUG XXX
+    if (goToNextNewCell(&iDir, &iCell)) break;
     pushCell(iCell);
-    ++iCellCount;
-// sleep(1);
   }
-
+exit(-1); // DEBUG XXX
   // Last cell will be the starting point.
   *piCell = iCell;
 }
