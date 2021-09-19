@@ -491,21 +491,21 @@ int isACellAroundWhole(int* piDir, int iCell) {
 }
 
 /*******************************************************************************
- * Name:  goToNextNewCell
+ * Name:  goneToNextNewCell
  * Purpose: Search for the next whole cell to break into or signals finish.
  *******************************************************************************/
-int goToNextNewCell(int* piDir, int* piCell) {
+int goneToNextNewCell(int* piDir, int* piCell) {
   if (isACellAroundWhole(piDir, *piCell))
     breakIntoCell(*piDir, piCell);
   else {
     // Go back one cell, until a whole cell is found.
     while (! isACellAroundWhole(piDir, *piCell)) {
       if ((*piCell = pullCell()) == -1)
-        return 1;
+        return 0;
     }
     breakIntoCell(*piDir, piCell);
   }
-  return 0;
+  return 1;
 }
 
 /*******************************************************************************
@@ -677,7 +677,7 @@ void generateMaze(int* piCell) {
     clearScreen();
     printMaze(iDir, iCell);
 // sleep(1); // DEBUG XXX
-    if (goToNextNewCell(&iDir, &iCell)) break;
+    if (! goneToNextNewCell(&iDir, &iCell)) break;
     pushCell(iCell);
   }
 exit(-1); // DEBUG XXX
