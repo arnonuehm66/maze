@@ -676,7 +676,7 @@ void generateMaze(int* piCell) {
   while (1) {
     clearScreen();
     printMaze(iDir, iCell);
-// sleep(1); // DEBUG XXX
+usleep(80000); // DEBUG XXX
     if (! goneToNextWholeCell(&iDir, &iCell)) break;
     pushCell(iCell);
   }
