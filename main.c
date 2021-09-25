@@ -238,15 +238,15 @@ next_argument:
     dispatchError(ERR_ARGS, "y dimension out of bounds");
 
   // Set grid values.
-  g_tMaze.iMazeW = g_tOpts.iMazeW;
-  g_tMaze.iMazeH = g_tOpts.iMazeH;
-  g_tMaze.iGridW = g_tOpts.iMazeW + 2;
-  g_tMaze.iGridH = g_tOpts.iMazeH + 2;
-  g_tMaze.iMazeCount  = g_tMaze.iMazeW * g_tMaze.iMazeH;
+  g_tMaze.iMazeW     = g_tOpts.iMazeW;
+  g_tMaze.iMazeH     = g_tOpts.iMazeH;
+  g_tMaze.iGridW     = g_tOpts.iMazeW + 2;
+  g_tMaze.iGridH     = g_tOpts.iMazeH + 2;
+  g_tMaze.iMazeCount = g_tMaze.iMazeW * g_tMaze.iMazeH;
   g_tMaze.iGridCount = g_tMaze.iGridW * g_tMaze.iGridH;
 
   // Grid and max stack. Grid will have a border with special value.
-  g_tStack.piCell = (int*) malloc(g_tMaze.iMazeCount  * sizeof(int));
+  g_tStack.piCell = (int*) malloc(g_tMaze.iMazeCount * sizeof(int));
   g_tMaze.piCell  = (int*) malloc(g_tMaze.iGridCount * sizeof(int));
 
   // Init stack pointer.
