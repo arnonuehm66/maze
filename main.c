@@ -495,7 +495,7 @@ int isACellAroundWhole(int* piDir, int iCell) {
  * Purpose: Search for the next whole cell to break into or signals finish.
  *******************************************************************************/
 int goneToNextWholeCell(int* piDir, int* piCell) {
-  // Go back one cell, until a whole cell is found.
+  // Go back one cell, until a whole cell is found else end process.
   while (! isACellAroundWhole(piDir, *piCell)) {
     if ((*piCell = pullCell()) == -1)
       return 0;
