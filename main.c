@@ -495,47 +495,66 @@ int isACellAroundWhole(int* piDir, int iCell) {
  * Purpose: Search for the next whole cell to break into or signals finish.
  *******************************************************************************/
 int goneToNextWholeCell(int* piDir, int* piCell) {
-  if (isACellAroundWhole(piDir, *piCell))
-    breakIntoCell(*piDir, piCell);
-  else {
-    // Go back one cell, until a whole cell is found.
-    while (! isACellAroundWhole(piDir, *piCell)) {
-      if ((*piCell = pullCell()) == -1)
-        return 0;
-    }
-    breakIntoCell(*piDir, piCell);
+  // Go back one cell, until a whole cell is found.
+  while (! isACellAroundWhole(piDir, *piCell)) {
+    if ((*piCell = pullCell()) == -1)
+      return 0;
   }
+  // Break into cell if one was found.
+  breakIntoCell(*piDir, piCell);
   return 1;
 }
 
 /*******************************************************************************
  * Name:  waitForNextKey
- * Purpose: Waits until a key is pressed.
+ * Purpose: Waits until a key is pressed. Returns direction aand wether to move.
  *******************************************************************************/
-int waitForNextKey(int iDir) {
+int waitForNextKey(int* piDir) {
   int c = 0;
+  int m = 0;
 
   while (1) {
     c = getch();
 
-    if (c == 'i') return MOVE_FRONT;
-    if (c == 'j') return MOVE_LEFT;   //   i
-    if (c == 'k') return MOVE_BACK;   // j k l
-    if (c == 'l') return MOVE_RIGHT;
-
-    if (c == 'w') return MOVE_FRONT;
-    if (c == 'a') return MOVE_LEFT;   //   w
-    if (c == 's') return MOVE_BACK;   // a s d
-    if (c == 'd') return MOVE_RIGHT;
+    if (c == 'i') m = MOVE_FRONT;
+    if (c == 'j') m = MOVE_LEFT;   //   i
+    if (c == 'k') m = MOVE_BACK;   // j k l
+    if (c == 'l') m = MOVE_RIGHT;
+    if (c == 'w') m = MOVE_FRONT;
+    if (c == 'a') m = MOVE_LEFT;   //   w`
+    if (c == 's') m = MOVE_BACK;   // a s d
+    if (c == 'd') m = MOVE_RIGHT;
   }
+
+    if (m == MOVE_FRONT) {
+      return 1;
+    }
+    if (m == MOVE_LEFT) {
+       *piDir = turnLeft(*piDir);
+       return 0;
+    }
+    if (m == MOVE_RIGHT) {
+      *piDir = turnRight(*piDir);
+      return 0;
+    }
+    if (m == MOVE_BACK) {
+      *piDir = turnBack(*piDir);
+      return 0;
+    }
 }
 
 /*******************************************************************************
  * Name:  .
  * Purpose: .
  *******************************************************************************/
-void moveInGrid(int iDir, int* piCell) {
-  ;
+int moveInGrid(int iDir, int* piCell) {
+  if (! isDirWall(iDir, *piCell)) {
+    if (isBorder(iDir, *piCell)) {
+      return 1;
+    }
+    goToCell(iDir, piCell);
+  }
+  return 0;
 }
 
 /*******************************************************************************
@@ -614,6 +633,8 @@ void printMaze(int iDir, int iCell) {
       printWallIf(x, y, CELL_SOUTH, cWallNS, cNoWallNS);
     printf("\n");
   }
+
+  printf("Cell = % 4d, Dir = %d\n", iCell, iDir);
 }
 
 /*******************************************************************************
@@ -676,7 +697,7 @@ void generateMaze(int* piCell) {
   while (1) {
     clearScreen();
     printMaze(iDir, iCell);
-usleep(80000); // DEBUG XXX
+    usleep(80000);
     if (! goneToNextWholeCell(&iDir, &iCell)) break;
     pushCell(iCell);
   }
@@ -706,8 +727,8 @@ int main(int argc, char *argv[]) {
 
   // .. and loop game interactions.
   while (1) {
-    iDir = waitForNextKey(iDir);
-    moveInGrid(iDir, &iCell);
+    if (waitForNextKey(&iDir))
+      moveInGrid(iDir, &iCell);
     clearScreen();
     printMaze(iDir, iCell);
     print3DView(iDir, iCell);
