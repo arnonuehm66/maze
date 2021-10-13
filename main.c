@@ -390,10 +390,10 @@ int isBorder(int iDir, int iCell) {
 }
 
 /*******************************************************************************
- * Name:  isDirWall
+ * Name:  isWallInDir
  * Purpose: Returns true if iDir points to a wall.
  *******************************************************************************/
-int isDirWall(int iDir, int iCell) {
+int isWallInDir(int iDir, int iCell) {
   iCell = g_tMaze.piCell[iCell];
   if (iDir == DIR_NORTH && iCell % CELL_NORTH != 0) return 1;
   if (iDir == DIR_WEST  && iCell % CELL_WEST  != 0) return 1;
@@ -408,7 +408,7 @@ int isDirWall(int iDir, int iCell) {
  *******************************************************************************/
 int isDirCellWhole(int iDir, int iCell) {
   if (isBorder(iDir, iCell))  return 0;
-  if (isDirWall(iDir, iCell)) return 0;
+  if (isWallInDir(iDir, iCell)) return 0;
 
   if (getCellInDir(iDir, iCell) == CELL_WHOLE) return 1;
   return 0;
@@ -548,7 +548,7 @@ int waitForNextKey(int* piDir) {
  * Purpose: .
  *******************************************************************************/
 int moveInGrid(int iDir, int* piCell) {
-  if (! isDirWall(iDir, *piCell)) {
+  if (! isWallInDir(iDir, *piCell)) {
     if (isBorder(iDir, *piCell)) {
       return 1;
     }
