@@ -407,9 +407,7 @@ int isWallInDir(int iDir, int iCell) {
  * Purpose: Returns true if next cell in iDir is whole.
  *******************************************************************************/
 int isDirCellWhole(int iDir, int iCell) {
-  if (isBorder(iDir, iCell))  return 0;
-  if (isWallInDir(iDir, iCell)) return 0;
-
+  if (isBorder(iDir, iCell))                   return 0;
   if (getCellInDir(iDir, iCell) == CELL_WHOLE) return 1;
   return 0;
 }
