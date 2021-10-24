@@ -47,6 +47,8 @@ cstr g_csMename;
 #define CELL_WHOLE (CELL_NORTH * CELL_WEST * CELL_SOUTH * CELL_EAST)
 // The prime numbers multiplied equal 210 = 2 * 3 * 5 * 7
 
+char g_dChar[] = "^<v>";
+
 #define DIR_NORTH 0x00
 #define DIR_WEST  0x01
 #define DIR_SOUTH 0x02
@@ -105,7 +107,7 @@ s_array(cstr);
 t_options     g_tOpts;  // CLI options and arguments.
 t_array(cstr) g_tArgs;  // Free arguments.
 t_grid        g_tMaze;  // The maze's grid.
-t_stack       g_tStack; // Stack for back-propagating while maze's creation.
+t_stack       g_tStack; // Stack for back-propagating during maze's creation.
 
 
 //******************************************************************************
@@ -345,10 +347,10 @@ void pushCell(int iCell) {
 }
 
 /*******************************************************************************
- * Name:  turnRight
- * Purpose: Turn direction one step to the right.
+ * Name:  turnLeft
+ * Purpose: Turn direction one step to the left.
  *******************************************************************************/
-int turnRight(int iDir) {
+int turnLeft(int iDir) {
   return (iDir + 1) % DIR_MOD;
 }
 
@@ -361,10 +363,10 @@ int turnBack(int iDir) {
 }
 
 /*******************************************************************************
- * Name:  turnLeft
- * Purpose: Turn direction one step to the left.
+ * Name:  turnRight
+ * Purpose: Turn direction one step to the right.
  *******************************************************************************/
-int turnLeft(int iDir) {
+int turnRight(int iDir) {
   return (iDir + 3) % DIR_MOD;
 }
 
@@ -395,11 +397,11 @@ int isBorder(int iDir, int iCell) {
  *******************************************************************************/
 int isWallInDir(int iDir, int iCell) {
   iCell = g_tMaze.piCell[iCell];
-  if (iDir == DIR_NORTH && iCell % CELL_NORTH != 0) return 1;
-  if (iDir == DIR_WEST  && iCell % CELL_WEST  != 0) return 1;
-  if (iDir == DIR_SOUTH && iCell % CELL_SOUTH != 0) return 1;
-  if (iDir == DIR_EAST  && iCell % CELL_EAST  != 0) return 1;
-  return 0;
+  if (iDir == DIR_NORTH && iCell % CELL_NORTH != 0) return 0;
+  if (iDir == DIR_WEST  && iCell % CELL_WEST  != 0) return 0;
+  if (iDir == DIR_SOUTH && iCell % CELL_SOUTH != 0) return 0;
+  if (iDir == DIR_EAST  && iCell % CELL_EAST  != 0) return 0;
+  return 1;
 }
 
 /*******************************************************************************
@@ -514,31 +516,26 @@ int waitForNextKey(int* piDir) {
   while (1) {
     c = getch();
 
-    if (c == 'i') m = MOVE_FRONT;
-    if (c == 'j') m = MOVE_LEFT;   //   i
-    if (c == 'k') m = MOVE_BACK;   // j k l
-    if (c == 'l') m = MOVE_RIGHT;
-    if (c == 'w') m = MOVE_FRONT;
-    if (c == 'a') m = MOVE_LEFT;   //   w`
-    if (c == 's') m = MOVE_BACK;   // a s d
-    if (c == 'd') m = MOVE_RIGHT;
+    //   i
+    // j k l
+    if (c == 'i') { m = MOVE_FRONT; break; }
+    if (c == 'j') { m = MOVE_LEFT;  break; }
+    if (c == 'k') { m = MOVE_BACK;  break; }
+    if (c == 'l') { m = MOVE_RIGHT; break; }
+
+    //   w
+    // a s d
+    if (c == 'w') { m = MOVE_FRONT; break; }
+    if (c == 'a') { m = MOVE_LEFT;  break; }
+    if (c == 's') { m = MOVE_BACK;  break; }
+    if (c == 'd') { m = MOVE_RIGHT; break; }
   }
 
-    if (m == MOVE_FRONT) {
-      return 1;
-    }
-    if (m == MOVE_LEFT) {
-       *piDir = turnLeft(*piDir);
-       return 0;
-    }
-    if (m == MOVE_RIGHT) {
-      *piDir = turnRight(*piDir);
-      return 0;
-    }
-    if (m == MOVE_BACK) {
-      *piDir = turnBack(*piDir);
-      return 0;
-    }
+  if (m == MOVE_FRONT) { /* *piDir = *piDir */       return 1; }
+  if (m == MOVE_LEFT)  { *piDir = turnLeft(*piDir);  return 0; }
+  if (m == MOVE_BACK)  { *piDir = turnBack(*piDir);  return 0; }
+  if (m == MOVE_RIGHT) { *piDir = turnRight(*piDir); return 0; }
+  return 0;
 }
 
 /*******************************************************************************
@@ -547,12 +544,17 @@ int waitForNextKey(int* piDir) {
  *******************************************************************************/
 int moveInGrid(int iDir, int* piCell) {
   if (! isWallInDir(iDir, *piCell)) {
-    if (isBorder(iDir, *piCell)) {
+    if (! isBorder(iDir, *piCell)) {
+      goToCell(iDir, piCell);
       return 1;
     }
-    goToCell(iDir, piCell);
+    else {
+      return -1;
+    }
   }
-  return 0;
+  else {
+    return 0;
+  }
 }
 
 /*******************************************************************************
@@ -579,19 +581,23 @@ void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWa
  * Purpose: .
  *******************************************************************************/
 void printMaze(int iDir, int iCell) {
-  char* cCorner     = "+";
-  char* cWallNS     = "---+";
-  char* cNoWallNS   = "   +";
-  char* cWallE      = "   |";
-  char* cNoWallE    = "    ";
-  char* cWallEPos   = " x |";
-  char* cNoWallEPos = " x  ";
-  char* cWallW      = "|";
-  char* cNoWallW    = " ";
-  char* cWall       = NULL;
-  char* cNoWall     = NULL;
-  int   iMazeW      = 0;
-  int   iMazeH      = 0;
+  char* cCorner        = "+";
+  char* cWallNS        = "---+";
+  char* cNoWallNS      = "   +";
+  char* cWallE         = "   |";
+  char* cNoWallE       = "    ";
+  char  cWallEPos[5]   = " x |";
+  char  cNoWallEPos[5] = " x  ";
+  char* cWallW         = "|";
+  char* cNoWallW       = " ";
+  char* cWall          = NULL;
+  char* cNoWall        = NULL;
+  int   iMazeW         = 0;
+  int   iMazeH         = 0;
+
+  // Alter position-marker 'X' to actual direction-marker.
+  snprintf(cWallEPos,   5, " %c |", g_dChar[iDir]);
+  snprintf(cNoWallEPos, 5, " %c  ", g_dChar[iDir]);
 
   // Get maze coordinates.
   cell2xy(iCell, &iMazeW, &iMazeH);
@@ -632,7 +638,7 @@ void printMaze(int iDir, int iCell) {
     printf("\n");
   }
 
-  printf("Cell = % 4d, Dir = %d\n", iCell, iDir);
+  printf("Cell = % 4d, Dir = %d (%c)\n", iCell, iDir, g_dChar[iDir]);
 }
 
 /*******************************************************************************
@@ -647,10 +653,11 @@ void print3DView(int iDir, int iCell) {
  * Purpose: Generates a complete maze within the border of the grid.
  *******************************************************************************/
 void generateMaze(int* piCell) {
-  int iCell = 0;
-  int iDir  = 0;
-  int iX    = 0;
-  int iY    = 0;
+  int iCell     = 0;
+  int iCellLast = 0;
+  int iDir      = 0;
+  int iX        = 0;
+  int iY        = 0;
 
   // Init the grid's cells and the border.
   for (int i = 0; i < g_tMaze.iGridCount; ++i)
@@ -696,12 +703,13 @@ void generateMaze(int* piCell) {
     clearScreen();
     printMaze(iDir, iCell);
     usleep(80000);
+    iCellLast = iCell;
     if (! goneToNextWholeCell(&iDir, &iCell)) break;
     pushCell(iCell);
   }
-exit(-1); // DEBUG XXX
+
   // Last cell will be the starting point.
-  *piCell = iCell;
+  *piCell = iCellLast;
 }
 
 
@@ -723,17 +731,24 @@ int main(int argc, char *argv[]) {
   // Start game ...
   generateMaze(&iCell);
 
+// exit(-1); // DEBUG XXX
+
   // .. and loop game interactions.
   while (1) {
-    if (waitForNextKey(&iDir))
-      moveInGrid(iDir, &iCell);
+    if (waitForNextKey(&iDir)) {
+      if (moveInGrid(iDir, &iCell) == -1) {
+        break;
+      }
+    }
     clearScreen();
     printMaze(iDir, iCell);
     print3DView(iDir, iCell);
   }
 
+  printf("Finished!\n");
+
   // Free all used memory, prior end of program.
-  daFreeEx(g_tArgs, cStr);
+  // daFreeEx(g_tArgs, cStr);
   free(g_tMaze.piCell);
   free(g_tStack.piCell);
 
