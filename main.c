@@ -214,12 +214,12 @@ next_argument:
           version();
         }
         if (cOpt == 'w') {
-          if (! getArgLong((ll*) &g_tOpts.iMazeW, &iArg, argc, argv, ARG_CLI, NULL))
+          if (! getArgInt(&g_tOpts.iMazeW, &iArg, argc, argv, ARG_CLI, NULL))
             dispatchError(ERR_ARGS, "No valid width or missing");
           continue;
         }
         if (cOpt == 'h') {
-          if (! getArgLong((ll*) &g_tOpts.iMazeH, &iArg, argc, argv, ARG_CLI, NULL))
+          if (! getArgInt(&g_tOpts.iMazeH, &iArg, argc, argv, ARG_CLI, NULL))
             dispatchError(ERR_ARGS, "No valid height or missing");
           continue;
         }
