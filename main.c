@@ -752,7 +752,7 @@ int main(int argc, char *argv[]) {
   daFreeEx(g_tArgs, cStr);
   free(g_tMaze.piCell);
   csFree(&g_csMename);
-  free(g_tStack.piCell);
+  // free(g_tStack.piCell);
 
   return ERR_NOERR;
 }
