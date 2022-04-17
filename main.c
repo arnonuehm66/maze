@@ -617,7 +617,6 @@ void printMaze(int iDir, int iCell) {
   printf("\n");
 
   for (int y = 1; y < g_tMaze.iMazeH + 1; ++y) {
-
     printWallIf(1, y, CELL_WEST, cWallW, cNoWallW);
     for (int x = 1; x < g_tMaze.iMazeW + 1; ++x) {
       if (y == iMazeH && x == iMazeW) {
@@ -652,7 +651,7 @@ void print3DView(int iDir, int iCell) {
  * Name:  generateMaze
  * Purpose: Generates a complete maze within the border of the grid.
  *******************************************************************************/
-void generateMaze(int* piCell) {
+int generateMaze(int* piCell) {
   int iCell     = 0;
   int iCellLast = 0;
   int iDir      = 0;
@@ -710,6 +709,8 @@ void generateMaze(int* piCell) {
 
   // Last cell will be the starting point.
   *piCell = iCellLast;
+
+  return iDir;
 }
 
 
@@ -729,7 +730,7 @@ int main(int argc, char *argv[]) {
   initRand();
 
   // Start game ...
-  generateMaze(&iCell);
+  iDir = generateMaze(&iCell);
 
 // exit(-1); // DEBUG XXX
 
@@ -750,6 +751,7 @@ int main(int argc, char *argv[]) {
   // Free all used memory, prior end of program.
   daFreeEx(g_tArgs, cStr);
   free(g_tMaze.piCell);
+  csFree(&g_csMename);
   free(g_tStack.piCell);
 
   return ERR_NOERR;
