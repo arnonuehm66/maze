@@ -748,7 +748,7 @@ int main(int argc, char *argv[]) {
   printf("Finished!\n");
 
   // Free all used memory, prior end of program.
-  // daFreeEx(g_tArgs, cStr);
+  daFreeEx(g_tArgs, cStr);
   free(g_tMaze.piCell);
   free(g_tStack.piCell);
 
