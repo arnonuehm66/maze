@@ -641,10 +641,12 @@ void printMaze(int iDir, int iCell) {
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  print3DView
+ * Purpose: Prints the maze in 1st person perspective.
  *******************************************************************************/
 void print3DView(int iDir, int iCell) {
+  /* \ */
+  ;
 }
 
 /*******************************************************************************
@@ -748,11 +750,15 @@ int main(int argc, char *argv[]) {
 
   printf("Finished!\n");
 
+  // Is broken and crashes!
+  // -----------------------
   // Free all used memory, prior end of program.
-  daFreeEx(g_tArgs, cStr);
-  free(g_tMaze.piCells);
-  csFree(&g_csMename);
+  // daFreeEx(g_tArgs, cStr);
+  // csFree(&g_csMename);
+  // free(g_tMaze.piCells);
   // free(g_tStack.piCell);
+  // -----------------------
+  // Is broken and crashes!
 
   return ERR_NOERR;
 }
