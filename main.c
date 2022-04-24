@@ -89,7 +89,7 @@ typedef struct s_grid {
   int  iGridH;      // = iMazeH + border (2)
   int  iMazeCount;  // = iMazeW * iMazeH
   int  iGridCount;  // = iGridW * iGridH
-  int* piCell;
+  int* piCells;
 } t_grid;
 
 typedef struct s_stack {
@@ -249,7 +249,7 @@ next_argument:
 
   // Grid and max stack. Grid will have a border with special value.
   g_tStack.piCell = (int*) malloc(g_tMaze.iMazeCount * sizeof(int));
-  g_tMaze.piCell  = (int*) malloc(g_tMaze.iGridCount * sizeof(int));
+  g_tMaze.piCells = (int*) malloc(g_tMaze.iGridCount * sizeof(int));
 
   // Init stack pointer.
   g_tStack.sStackPtr = STACK_EMPTY;
@@ -356,7 +356,7 @@ int turnLeft(int iDir) {
 
 /*******************************************************************************
  * Name:  turnBack
- * Purpose: Turn direction to the oposit direction.
+ * Purpose: Turn direction to the opposit direction.
  *******************************************************************************/
 int turnBack(int iDir) {
   return (iDir + 2) % DIR_MOD;
@@ -375,10 +375,10 @@ int turnRight(int iDir) {
  * Purpose: Returns content of next cell in direction iDir.
  *******************************************************************************/
 int getCellInDir(int iDir, int iCell) {
-  if (iDir == DIR_NORTH) return g_tMaze.piCell[iCell - g_tMaze.iGridW];
-  if (iDir == DIR_WEST)  return g_tMaze.piCell[iCell - 1];
-  if (iDir == DIR_SOUTH) return g_tMaze.piCell[iCell + g_tMaze.iGridW];
-  if (iDir == DIR_EAST)  return g_tMaze.piCell[iCell + 1];
+  if (iDir == DIR_NORTH) return g_tMaze.piCells[iCell - g_tMaze.iGridW];
+  if (iDir == DIR_WEST)  return g_tMaze.piCells[iCell - 1];
+  if (iDir == DIR_SOUTH) return g_tMaze.piCells[iCell + g_tMaze.iGridW];
+  if (iDir == DIR_EAST)  return g_tMaze.piCells[iCell + 1];
   return -1;
 }
 
@@ -396,7 +396,7 @@ int isBorder(int iDir, int iCell) {
  * Purpose: Returns true if iDir points to a wall.
  *******************************************************************************/
 int isWallInDir(int iDir, int iCell) {
-  iCell = g_tMaze.piCell[iCell];
+  iCell = g_tMaze.piCells[iCell];
   if (iDir == DIR_NORTH && iCell % CELL_NORTH != 0) return 0;
   if (iDir == DIR_WEST  && iCell % CELL_WEST  != 0) return 0;
   if (iDir == DIR_SOUTH && iCell % CELL_SOUTH != 0) return 0;
@@ -420,10 +420,10 @@ int isDirCellWhole(int iDir, int iCell) {
  *******************************************************************************/
 int getOpenWalls(int iCell) {
   int iWalls = 1;
-  if (g_tMaze.piCell[iCell] % CELL_NORTH == 0) iWalls *= CELL_NORTH;
-  if (g_tMaze.piCell[iCell] % CELL_WEST  == 0) iWalls *= CELL_WEST;
-  if (g_tMaze.piCell[iCell] % CELL_SOUTH == 0) iWalls *= CELL_SOUTH;
-  if (g_tMaze.piCell[iCell] % CELL_EAST  == 0) iWalls *= CELL_EAST;
+  if (g_tMaze.piCells[iCell] % CELL_NORTH == 0) iWalls *= CELL_NORTH;
+  if (g_tMaze.piCells[iCell] % CELL_WEST  == 0) iWalls *= CELL_WEST;
+  if (g_tMaze.piCells[iCell] % CELL_SOUTH == 0) iWalls *= CELL_SOUTH;
+  if (g_tMaze.piCells[iCell] % CELL_EAST  == 0) iWalls *= CELL_EAST;
   return (iWalls == 1) ? CELL_NONE : iWalls;
 }
 
@@ -456,12 +456,12 @@ void goToCell(int iDir, int* piCell) {
  *******************************************************************************/
 void breakIntoCell(int iDir, int* piCell) {
   // Break first wall of cell we come from.
-  g_tMaze.piCell[*piCell] /= getDirWall(iDir);
+  g_tMaze.piCells[*piCell] /= getDirWall(iDir);
 
   goToCell(iDir, piCell);
 
   // Break second wall of cell we gone to.
-  g_tMaze.piCell[*piCell] /= getDirWall(turnBack(iDir));
+  g_tMaze.piCells[*piCell] /= getDirWall(turnBack(iDir));
 }
 
 /*******************************************************************************
@@ -570,7 +570,7 @@ void clearScreen(void) {
  * Purpose: Prints a wall if cell contains one in wanted direction.
  *******************************************************************************/
 void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWall) {
-  if (g_tMaze.piCell[xy2cell(iX, iY)] % iWall == 0)
+  if (g_tMaze.piCells[xy2cell(iX, iY)] % iWall == 0)
     printf("%s", cWall);
   else
     printf("%s", cNoWall);
@@ -660,11 +660,11 @@ int generateMaze(int* piCell) {
 
   // Init the grid's cells and the border.
   for (int i = 0; i < g_tMaze.iGridCount; ++i)
-    g_tMaze.piCell[i] = CELL_BORDER;
+    g_tMaze.piCells[i] = CELL_BORDER;
 
   for (int y = 1; y < g_tMaze.iMazeH + 1; ++y)
     for (int x = 1; x < g_tMaze.iMazeW + 1; ++x)
-      g_tMaze.piCell[xy2cell(x, y)] = CELL_WHOLE;
+      g_tMaze.piCells[xy2cell(x, y)] = CELL_WHOLE;
 
   // Get an entry cell a the edge.
   //   X 1   2   3
@@ -689,10 +689,10 @@ int generateMaze(int* piCell) {
   iCell = xy2cell(iX, iY);
 
   // ... and break the first wall in appropriate border for the exit.
-  if (iDir == DIR_NORTH) g_tMaze.piCell[iCell] /= CELL_SOUTH;
-  if (iDir == DIR_WEST)  g_tMaze.piCell[iCell] /= CELL_EAST;
-  if (iDir == DIR_SOUTH) g_tMaze.piCell[iCell] /= CELL_NORTH;
-  if (iDir == DIR_EAST)  g_tMaze.piCell[iCell] /= CELL_WEST;
+  if (iDir == DIR_NORTH) g_tMaze.piCells[iCell] /= CELL_SOUTH;
+  if (iDir == DIR_WEST)  g_tMaze.piCells[iCell] /= CELL_EAST;
+  if (iDir == DIR_SOUTH) g_tMaze.piCells[iCell] /= CELL_NORTH;
+  if (iDir == DIR_EAST)  g_tMaze.piCells[iCell] /= CELL_WEST;
 
   // Save first cell in stack.
   pushCell(iCell);
@@ -750,7 +750,7 @@ int main(int argc, char *argv[]) {
 
   // Free all used memory, prior end of program.
   daFreeEx(g_tArgs, cStr);
-  free(g_tMaze.piCell);
+  free(g_tMaze.piCells);
   csFree(&g_csMename);
   // free(g_tStack.piCell);
 
