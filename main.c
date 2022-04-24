@@ -736,7 +736,7 @@ int main(int argc, char *argv[]) {
 
 // exit(-1); // DEBUG XXX
 
-  // .. and loop game interactions.
+  // ... and loop game interactions.
   while (1) {
     if (waitForNextKey(&iDir)) {
       if (moveInGrid(iDir, &iCell) == -1) {
