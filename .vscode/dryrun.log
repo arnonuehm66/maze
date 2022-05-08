@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/jens/Programmieren/Cpp/maze'
+gcc -Wall -Ofast -DNDEBUG -o maze main.c 
+strip maze
+make: Leaving directory '/home/jens/Programmieren/Cpp/maze'
+ 

@@ -750,6 +750,7 @@ int main(int argc, char *argv[]) {
 
   printf("Finished!\n");
 
+  // ToDo: Get into why free() crashes here!
   // Is broken and crashes!
   // -----------------------
   // Free all used memory, prior end of program.
