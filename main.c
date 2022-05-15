@@ -63,7 +63,7 @@ char g_dChar[] = "^<v>";
 
 #define GRID_MAX 100
 
-#define STACK_EMPTY (~0)
+#define STACK_EMPTY 0
 
 
 //******************************************************************************
@@ -750,16 +750,11 @@ int main(int argc, char *argv[]) {
 
   printf("Finished!\n");
 
-  // ToDo: Get into why free() crashes here!
-  // Is broken and crashes!
-  // -----------------------
   // Free all used memory, prior end of program.
-  // daFreeEx(g_tArgs, cStr);
-  // csFree(&g_csMename);
-  // free(g_tMaze.piCells);
-  // free(g_tStack.piCell);
-  // -----------------------
-  // Is broken and crashes!
+  daFreeEx(g_tArgs, cStr);
+  csFree(&g_csMename);
+  free(g_tMaze.piCells);
+  free(g_tStack.piCell);
 
   return ERR_NOERR;
 }
