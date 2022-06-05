@@ -6,6 +6,7 @@
  ** Date        User  Log
  **-----------------------------------------------------------------------------
  ** 01.06.2021  JE    Created program.
+ ** 06.06.2022  JE    Now the maze got more straight lines.
  *******************************************************************************/
 
 
@@ -25,7 +26,7 @@
 //******************************************************************************
 //* defines & macros
 
-#define ME_VERSION "0.1.1"
+#define ME_VERSION "0.1.2"
 cstr g_csMename;
 
 #define ERR_NOERR 0x00
@@ -469,22 +470,30 @@ void breakIntoCell(int iDir, int* piCell) {
  * Purpose: Looks if a neighbour cell is whole.
  *******************************************************************************/
 int isACellAroundWhole(int* piDir, int iCell) {
-  int iDir   = *piDir;
-  int iWhole = 0;
-  int iLeft  = randI(2);
+  int   iDir    = *piDir;
+  int   iWhole  = 0;
+  int   iLeft   = randI(2);
+  float fDirTry = randF();
+
+  // Find out if straight, left or right will be the first guess.
+  // 50% ahead  0    - 0.5
+  // 25% left   0.5  - 0.75
+  // 25% right  0.75 - 0.99
+  if (fDirTry > 0.5 && fDirTry <= 0.75) iDir = turnLeft(iDir);
+  if (fDirTry > 0.75)                   iDir = turnRight(iDir);
 
   // Find a whole cell around this cell in all directions.
   for (int i = 0; i < DIR_MOD; ++i) {
-    if (iLeft)
-      iDir = turnLeft(iDir);
-    else
-      iDir = turnRight(iDir);
-
     if (isDirCellWhole(iDir, iCell)) {
       iWhole = 1;
       *piDir = iDir;
       break;
     }
+    // Turn to next cell.
+    if (iLeft)
+      iDir = turnLeft(iDir);
+    else
+      iDir = turnRight(iDir);
   }
 
   return iWhole;
@@ -645,7 +654,20 @@ void printMaze(int iDir, int iCell) {
  * Purpose: Prints the maze in 1st person perspective.
  *******************************************************************************/
 void print3DView(int iDir, int iCell) {
-  /* \ */
+
+  /*
+  //  \
+  //    \
+  //      \            __________
+  //       |         /|
+  //       |_______/  |
+  //       |_______|  |
+  //       |       \  |
+  //       |         \|__________
+  //      /
+  //    /
+  //  /
+   */
   ;
 }
 
