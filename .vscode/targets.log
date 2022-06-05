@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Sun May  8 18:51:13 2022
+# Make data base, printed on Sun Jun  5 23:23:22 2022
 
 # Variables
 
@@ -23,7 +23,7 @@ NO_AT_BRIDGE = 1
 # environment
 CSF_EXCEPTION_PROMPT = 1
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-11d0c5bd-8385-48e6-84d7-ddf8ae93c828.sock
+VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-55a2c7cd-94de-41b9-94e2-9cd59f322ab5.sock
 # environment
 CSF_XmlOcafResource = /usr/share/opencascade/resources/XmlOcafResource
 # environment
@@ -32,10 +32,14 @@ LC_NAME = de_DE.UTF-8
 LC_NUMERIC = de_DE.UTF-8
 # environment
 VSCODE_CWD = /home/jens
+# environment
+WINDOWID = 60817411
 # makefile (from 'Makefile', line 6)
 LIBS = 
 # environment
 MMGT_CLEAR = 1
+# environment
+LESS_TERMCAP_me = [0m
 # environment
 CSF_XCAFDefaults = /usr/share/opencascade/resources/StdResource
 # environment
@@ -67,7 +71,7 @@ VSCODE_LOG_STACK = false
 # automatic
 %F = $(notdir $%)
 # environment
-VSCODE_CODE_CACHE_PATH = /home/jens/.config/Code/CachedData/57fd6d0195bb9b9d1b49f6da5db789060795de47
+VSCODE_CODE_CACHE_PATH = /home/jens/.config/Code/CachedData/c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5
 # environment
 XDG_SESSION_PATH = /org/freedesktop/DisplayManager/Session0
 # environment
@@ -78,10 +82,14 @@ LANG = C
 XAUTHORITY = /home/jens/.Xauthority
 # default
 .LOADED := 
+# environment
+LESS_TERMCAP_md = [1;32m
 # default
 .INCLUDE_DIRS = /usr/include /usr/local/include /usr/include
 # makefile
 MAKEFLAGS = pqrR
+# environment
+LESS_TERMCAP_so = [01;33m
 # makefile
 CURDIR := /home/jens/Programmieren/Cpp/maze
 # environment
@@ -91,9 +99,11 @@ APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
+LESS_TERMCAP_ue = [0m
+# environment
 MFLAGS = -pqrR
 # environment
-SSH_AUTH_SOCK = /tmp/ssh-XXXXXXVWh94S/agent.689
+SSH_AUTH_SOCK = /tmp/ssh-XXXXXX6VQPZW/agent.692
 # default
 .SHELLFLAGS := -c
 # environment
@@ -111,7 +121,9 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 20827
+VSCODE_PID = 127703
+# environment
+HISTIGNORE = ls:ll:l:lll
 # environment
 XDG_SESSION_TYPE = x11
 # automatic
@@ -121,7 +133,7 @@ CSF_XSMessage = /usr/share/opencascade/resources/XSMessage
 # environment
 DRAWDEFAULT = /usr/share/opencascade/resources/DrawResources/DrawDefault
 # environment
-SESSION_MANAGER = local/pinebookpro64:@/tmp/.ICE-unix/612,unix/pinebookpro64:/tmp/.ICE-unix/612
+SESSION_MANAGER = local/pinebookpro64:@/tmp/.ICE-unix/614,unix/pinebookpro64:/tmp/.ICE-unix/614
 # automatic
 *F = $(notdir $*)
 # environment
@@ -136,14 +148,18 @@ DBUS_SESSION_BUS_ADDRESS = unix:path=/run/user/1000/bus
 <D = $(patsubst %/,%,$(dir $<))
 # environment
 VSCODE_NLS_CONFIG = {"locale":"en-us","availableLanguages":{},"_languagePackSupport":true}
+# environment
+HISTFILESIZE = 10000
 # default
 MAKE_HOST := aarch64-unknown-linux-gnu
 # makefile
 SHELL = /bin/sh
+# environment
+LESS_TERMCAP_us = [1;4;31m
 # default
 MAKECMDGOALS := all
 # environment
-SHLVL = 1
+SHLVL = 2
 # environment
 CSF_TObjDefaults = /usr/share/opencascade/resources/StdResource
 # environment
@@ -151,7 +167,9 @@ MAKELEVEL := 0
 # default
 MAKE = $(MAKE_COMMAND)
 # environment
-PATH = /usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+PATH = /home/jens/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+# environment
+LESS_TERMCAP_se = [0m
 # default
 MAKEFILES := 
 # environment
@@ -164,6 +182,8 @@ MOTD_SHOWN = pam
 ^F = $(notdir $^)
 # environment
 LC_TIME = de_DE.UTF-8
+# environment
+LESS_TERMCAP_mb = [1;32m
 # environment
 VSCODE_LOG_NATIVE = false
 # environment
@@ -201,9 +221,13 @@ XDG_VTNR = 7
 # makefile
 .DEFAULT_GOAL := maze
 # environment
+YAOURT_COLORS = nb=1:pkg=1:ver=1;32:lver=1;45:installed=1;42:grp=1;34:od=1;41;5:votes=1;44:dsc=0:other=1;35
+# environment
 CSF_TObjMessage = /usr/share/opencascade/resources/TObj
 # environment
-EDITOR = nano
+HISTCONTROL = ignoreboth:erasedups
+# environment
+EDITOR = vim
 # environment
 DISPLAY = :0.0
 # environment
@@ -215,7 +239,7 @@ MAKE_VERSION := 4.3
 # environment
 LC_MEASUREMENT = de_DE.UTF-8
 # environment
-SSH_AGENT_PID = 694
+SSH_AGENT_PID = 693
 # environment
 _ = /usr/bin/make
 # environment
@@ -225,9 +249,13 @@ XDG_RUNTIME_DIR = /run/user/1000
 # makefile (from 'Makefile', line 4)
 CFLAGS = -Wall -Ofast -DNDEBUG
 # environment
+COLORTERM = truecolor
+# environment
 CSF_DrawPluginDefaults = /usr/share/opencascade/resources/DrawResources
 # environment
 CSF_IGESDefaults = /usr/share/opencascade/resources/XSTEPResource
+# environment
+VISUAL = vim
 # environment
 XDG_SESSION_CLASS = user
 # environment
@@ -239,11 +267,11 @@ ELECTRON_RUN_AS_NODE = 1
 # environment
 DRAWHOME = /usr/share/opencascade/resources/DrawResources
 # environment
-VSCODE_IPC_HOOK = /run/user/1000/vscode-3e620d04-1.67.0-main.sock
+VSCODE_IPC_HOOK = /run/user/1000/vscode-3e620d04-1.67.2-main.sock
+# environment
+TERM = xterm-256color
 # environment
 XDG_SESSION_ID = 2
-# environment
-PANEL_GDK_CORE_DEVICE_EVENTS = 0
 # default
 .RECIPEPREFIX := 
 # automatic
@@ -254,6 +282,8 @@ SUFFIXES :=
 VSCODE_CLI = 1
 # environment
 ELECTRON_NO_ATTACH_CONSOLE = 1
+# environment
+VTE_VERSION = 6800
 # environment
 XDG_GREETER_DATA_DIR = /var/lib/lightdm-data/jens
 # environment
@@ -271,7 +301,7 @@ GDMSESSION = xfce
 # environment
 LC_IDENTIFICATION = de_DE.UTF-8
 # variable set hash-table stats:
-# Load=129/1024=13%, Rehash=0, Collisions=9/160=6%
+# Load=144/1024=14%, Rehash=0, Collisions=17/175=10%
 
 # Pattern-specific Variable Values
 
@@ -282,7 +312,6 @@ LC_IDENTIFICATION = de_DE.UTF-8
 # . (device 45922, inode 788355): 12 files, no impossibilities.
 
 # 12 files, no impossibilities in 1 directories.
- 
 
 # Implicit Rules
 
@@ -352,6 +381,6 @@ main.c:
 # strcache performance: lookups = 29 / hit rate = 31%
 # hash-table stats:
 # Load=20/8192=0%, Rehash=0, Collisions=0/29=0%
-# Finished Make data base on Sun May  8 18:51:13 2022
+# Finished Make data base on Sun Jun  5 23:23:22 2022
 
  
