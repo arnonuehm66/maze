@@ -416,19 +416,6 @@ int isDirCellWhole(int iDir, int iCell) {
 }
 
 /*******************************************************************************
- * Name:  getOpenWalls
- * Purpose: Returns which walls in cell is open.
- *******************************************************************************/
-int getOpenWalls(int iCell) {
-  int iWalls = 1;
-  if (g_tMaze.piCells[iCell] % CELL_NORTH == 0) iWalls *= CELL_NORTH;
-  if (g_tMaze.piCells[iCell] % CELL_WEST  == 0) iWalls *= CELL_WEST;
-  if (g_tMaze.piCells[iCell] % CELL_SOUTH == 0) iWalls *= CELL_SOUTH;
-  if (g_tMaze.piCells[iCell] % CELL_EAST  == 0) iWalls *= CELL_EAST;
-  return (iWalls == 1) ? CELL_NONE : iWalls;
-}
-
-/*******************************************************************************
  * Name:  getDirWall
  * Purpose: Returns wall in direction.
  *******************************************************************************/
