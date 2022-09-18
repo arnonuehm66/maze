@@ -331,8 +331,8 @@ void cell2xy(int iCell, int* piX, int* piY) {
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  pullCell
+ * Purpose: Pulls value from stack.
  *******************************************************************************/
 int pullCell(void) {
   if (g_tStack.sStackSize == STACK_EMPTY) return -1;
@@ -340,8 +340,8 @@ int pullCell(void) {
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  pushCell
+ * Purpose: Pushes value onto stack.
  *******************************************************************************/
 void pushCell(int iCell) {
   g_tStack.piCell[g_tStack.sStackSize++] = iCell;
@@ -535,8 +535,8 @@ int waitForNextKey(int* piDir) {
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  moveInGrid
+ * Purpose: Moves worker to next cell, if a wall is detected.
  *******************************************************************************/
 int moveInGrid(int iDir, int* piCell) {
   if (! isWallInDir(iDir, *piCell)) {
@@ -573,8 +573,8 @@ void printWallIf(int iX, int iY, int iWall, const char* cWall, const char* cNoWa
 }
 
 /*******************************************************************************
- * Name:  .
- * Purpose: .
+ * Name:  printMaze
+ * Purpose: Prints the 2D maze.
  *******************************************************************************/
 void printMaze(int iDir, int iCell) {
   char* cCorner        = "+";
