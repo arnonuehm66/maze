@@ -18,7 +18,8 @@ debug: main.c
 gprof: main.c
 	$(CC) $(DBPCFLAGS) -o $(NAME) $< $(LIBS)
 	@echo "Please execute '$(NAME)' once."
-	@echo "Then run 'gprof $(NAME) gmon.out | less'."
+	@echo "Then you can run:"
+	@echo "> gprof $(NAME) gmon.out | less"
 
 clean:
 	$(RM) $(NAME) perf.data gmon.out
