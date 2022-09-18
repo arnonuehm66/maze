@@ -95,7 +95,7 @@ typedef struct s_grid {
 
 typedef struct s_stack {
   int*   piCell;
-  size_t sStackPtr;
+  size_t sStackSize;
 } t_stack;
 
 s_array(cstr);
@@ -253,7 +253,7 @@ next_argument:
   g_tMaze.piCells = (int*) malloc(g_tMaze.iGridCount * sizeof(int));
 
   // Init stack pointer.
-  g_tStack.sStackPtr = STACK_EMPTY;
+  g_tStack.sStackSize = STACK_EMPTY;
 
   // Free string memory.
   csFree(&csArgv);
@@ -307,10 +307,10 @@ int randI(int iTo) {
 
 /*******************************************************************************
  * Name:  randIab
- * Purpose: Generates an int between iFrom and iTo (exclusive).
+ * Purpose: Generates an int between a and b (exclusive).
  *******************************************************************************/
-int randIab(int iFrom, int iTo) {
-  return randF() * (float) (iTo - iFrom) + iFrom;
+int randIab(int a, int b) {
+  return randF() * (float) (b - a) + a;
 }
 
 /*******************************************************************************
@@ -335,8 +335,8 @@ void cell2xy(int iCell, int* piX, int* piY) {
  * Purpose: .
  *******************************************************************************/
 int pullCell(void) {
-  if (g_tStack.sStackPtr == STACK_EMPTY) return -1;
-  return g_tStack.piCell[--g_tStack.sStackPtr];
+  if (g_tStack.sStackSize == STACK_EMPTY) return -1;
+  return g_tStack.piCell[--g_tStack.sStackSize];
 }
 
 /*******************************************************************************
@@ -344,7 +344,7 @@ int pullCell(void) {
  * Purpose: .
  *******************************************************************************/
 void pushCell(int iCell) {
-  g_tStack.piCell[g_tStack.sStackPtr++] = iCell;
+  g_tStack.piCell[g_tStack.sStackSize++] = iCell;
 }
 
 /*******************************************************************************
