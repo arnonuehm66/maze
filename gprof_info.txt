@@ -1,0 +1,5 @@
+>$ gcc -Wall -O0 -pg -DDEBUG -o maze main.c
+>$ ./maze 
+>$ gprof maze gmon.out | less
+>$ rm perf.data gmon.out 
+
