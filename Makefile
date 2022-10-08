@@ -3,7 +3,7 @@ NAME = maze
 CC = gcc
 CFLAGS = -Wall -Ofast -DNDEBUG
 DBCFLAGS = -Wall -O0 -g -DDEBUG
-DBPCFLAGS = -Wall -O0 -pg -DDEBUG
+DBPCFLAGS = $(DBCFLAGS) -p
 LIBS =
 
 STRIP = strip
