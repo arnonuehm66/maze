@@ -503,7 +503,7 @@ int goneToNextWholeCell(int* piDir, int* piCell) {
 
 /*******************************************************************************
  * Name:  waitForNextKey
- * Purpose: Waits until a key is pressed. Returns direction aand wether to move.
+ * Purpose: Waits until a key is pressed. Returns direction and wether to move.
  *******************************************************************************/
 int waitForNextKey(int* piDir) {
   int c = 0;
