@@ -705,7 +705,7 @@ int generateMaze(int* piCell) {
   if (iDir == DIR_SOUTH) g_tMaze.piCells[iCell] /= CELL_NORTH;
   if (iDir == DIR_EAST)  g_tMaze.piCells[iCell] /= CELL_WEST;
 
-  // Save first cell in stack.
+  // Save first cell on stack.
   pushCell(iCell);
 
   // Walk through the maze and break walls until no cell is left to break into.
