@@ -641,8 +641,7 @@ void printMaze(int iDir, int iCell) {
  * Purpose: Prints the maze in 1st person perspective.
  *******************************************************************************/
 void print3DView(int iDir, int iCell) {
-
-  /*
+  /*\
   //  \
   //    \
   //      \            __________
@@ -655,7 +654,20 @@ void print3DView(int iDir, int iCell) {
   //    /
   //  /
    */
-  ;
+
+  int iDepthMax = 5;
+
+  // Create window buffer to write to.
+
+  // Write ASCII into window buffer from far to near.
+  for (int depth = iDepthMax; depth >= 0; --depth) {
+    // Go to upper left corner to
+    for (int x = 0; x < g_tMaze.iMazeW; ++x) {
+      ;
+    }
+  }
+
+  // Print window buffer to stdout.
 }
 
 /*******************************************************************************
