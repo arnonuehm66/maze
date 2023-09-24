@@ -2,7 +2,7 @@
  ** Name: c_string.h
  ** Purpose:  Provides a self contained kind of string.
  ** Author: (JE) Jens Elstner
- ** Version: v0.21.2
+ ** Version: v0.21.6
  *******************************************************************************
  ** Date        User  Log
  **-----------------------------------------------------------------------------
@@ -76,6 +76,11 @@
  ** 21.01.2023  JE    Changed logic from pfAgain to iFactorGuess in csIconv(),
  **                   now realloc out-buffer automatically while too small.
  ** 29.01.2023  JE    Added free() to csIconv(), preventing memory leak.
+ ** 30.06.2023  JE    Deleted superflous pcStr[0] = 0; in csAtUtf8().
+ ** 06.07.2023  JE    Refactored CS_START and CS_NOT_FOUND.
+ ** 23.07.2023  JE    Refactored csInStr() constants.
+ ** 23.07.2023  JE    Now csInStrRev() start position is counted from left.
+ ** 04.08.2023  JE    Now if sLenFrom == 0 csIconv() frees resources.
  *******************************************************************************/
 
 
@@ -109,8 +114,8 @@
 #define CS_MID_REST (-1)
 
 // csInStr(), csInStrRev()
-#define CS_START      (0)
-#define CS_NOT_FOUND (-1)
+#define CS_INSTR_START      (0)
+#define CS_INSTR_NOT_FOUND (-1)
 
 // csIvonv()
 #define CS_ICONV_NO_GUESS (0)
@@ -156,8 +161,8 @@ void csFree(cstr* pcsString);
 void        csSet(cstr* pcsString, const char* pcString);
 void        csSetf(cstr* pcsString, const char* pcFormat, ...);
 void        csCat(cstr* pcsDest, const char* pcSource, const char* pcAdd);
-long long   csInStr(long long llPos, const char* pcString, const char* pcFind);
-long long   csInStrRev(long long llPosMax, const char* pcString, const char* pcFind);
+long long   csInStr(long long llPosStart, const char* pcString, const char* pcFind);
+long long   csInStrRev(long long llPosStart, const char* pcString, const char* pcFind);
 void        csMid(cstr* pcsDest, const char* pcSource, long long llOffset, long long llLength);
 long long   csSplit(cstr* pcsLeft, cstr* pcsRight, const char* pcString, const char* pcSplitAt);
 int         csSplitPos(long long llPos, cstr* pcsLeft, cstr* pcsRight, const char* pcString, long long llWidth);
@@ -319,10 +324,7 @@ cstr csNew(const char* pcString) {
   cstr      csOut   = {0};
   long long llClen  = 0;
   long long llUlen  = cstr_len_utf8_char(pcString, &llClen);
-  long long llCsize = 0;
-
-  // Include '\0'.
-  llCsize = llClen + 1;
+  long long llCsize = llClen + 1; // Include '\0'.
 
   cstr_init(&csOut);
   cstr_double_capacity_if_full(&csOut, llCsize);
@@ -425,19 +427,19 @@ void csCat(cstr* pcsDest, const char* pcSource, const char* pcAdd) {
 
 /*******************************************************************************
  * Name: csInStr
- * Purpose: Finds offset of the first occurence of pcFind in pcString.
+ * Purpose: Finds first occurence's offset of pcFind in pcString from left.
  *******************************************************************************/
-long long csInStr(long long llPos, const char* pcString, const char* pcFind) {
+long long csInStr(long long llPosStart, const char* pcString, const char* pcFind) {
   long long llStrLen  = cstr_len(pcString);
   long long llFindLen = cstr_len(pcFind);
   long long i         = 0;   // Offset in String.
   long long c         = 0;   // Offset in Find.
 
   // Sanity checks.
-  if (llPos < 0 || llPos > llStrLen || llStrLen == 0 || llFindLen == 0)
-    return CS_NOT_FOUND;
+  if (llPosStart < 0 || llPosStart > llStrLen || llStrLen == 0 || llFindLen == 0)
+    return CS_INSTR_NOT_FOUND;
 
-  for (i = llPos; i < llStrLen; ++i)
+  for (i = llPosStart; i < llStrLen; ++i)
     if (pcFind[c++] == pcString[i]) {
       if (c == llFindLen)
         return i - c + 1;
@@ -445,23 +447,27 @@ long long csInStr(long long llPos, const char* pcString, const char* pcFind) {
     else
       c = 0;
 
-  return CS_NOT_FOUND;
+  return CS_INSTR_NOT_FOUND;
 }
 
 /*******************************************************************************
  * Name: csInStrRev
- * Purpose: Finds offset of the last occurence of pcFind in pcString, not
- *          greater than llPosMax.
+ * Purpose: Finds first occurence's offset of pcFind in pcString from right.
  *******************************************************************************/
-long long csInStrRev(long long llPosMax, const char* pcString, const char* pcFind) {
-  long long llPos  = 0;
-  long long llLast = CS_NOT_FOUND;
+long long csInStrRev(long long llPosStart, const char* pcString, const char* pcFind) {
+  long long llPos    = 0;
+  long long llLast   = CS_INSTR_NOT_FOUND;
+  long long llStrLen = cstr_len(pcString);
 
-  while ((llPos = csInStr(llPos, pcString, pcFind)) != CS_NOT_FOUND) {
-    if (llPos > llPosMax) break;
+  llPosStart = llStrLen - llPosStart;
+
+  while ((llPos = csInStr(llPos, pcString, pcFind)) != CS_INSTR_NOT_FOUND) {
     llLast = llPos;
     ++llPos;
   }
+
+  if (llPos > llPosStart)
+    return CS_INSTR_NOT_FOUND;
 
   return llLast;
 }
@@ -521,7 +527,7 @@ long long csSplit(cstr* pcsLeft, cstr* pcsRight, const char* pcString, const cha
   long long llWidth = cstr_len(pcSplitAt);
 
   // Split, if found.
-  if (llPos != CS_NOT_FOUND) {
+  if (llPos != CS_INSTR_NOT_FOUND) {
     csMid(pcsLeft,  pcString,               0,       llPos);
     csMid(pcsRight, pcString, llPos + llWidth, CS_MID_REST);
   }
@@ -688,13 +694,13 @@ int csIconv(cstr* pcsFromStr, cstr* pcsToStr, const char* pcFrom, const char* pc
   if (tConverter == (iconv_t) -1)
     return 0;
   if (sLenFrom   ==            0)
-    return 1;
+    goto close_and_exit;
 
   while (1) {
     // Create dynamically allocated vars and copy their pointers for iconv().
     if (! cstr_init_iconv_buffer(pcsFromStr, &acBufFrom, &pcBufFrom, sLenFrom, &acBufTo, &pcBufTo, sLenTo)) {
       iRetVal = 0;
-      goto close_and_exit;
+      goto free_close_and_exit;
     }
 
     if (iconv(tConverter, &pcBufFrom, &sLenFrom, &pcBufTo, &sLenTo) == (size_t) -1) {
@@ -707,7 +713,7 @@ int csIconv(cstr* pcsFromStr, cstr* pcsToStr, const char* pcFrom, const char* pc
       }
       // Else a non-recoverable error occurred.
       iRetVal = 0;
-      goto close_and_exit;
+      goto free_close_and_exit;
     }
     else
       // Everything was OK.
@@ -716,10 +722,11 @@ int csIconv(cstr* pcsFromStr, cstr* pcsToStr, const char* pcFrom, const char* pc
 
   csSet(pcsToStr, acBufTo);
 
-close_and_exit:
-  iconv_close(tConverter);
+free_close_and_exit:
   free(acBufFrom);
   free(acBufTo);
+close_and_exit:
+  iconv_close(tConverter);
 
   return iRetVal;
 }
@@ -757,19 +764,17 @@ int csAt(char* pcChar, const char* pcString, long long llPos) {
  * Name:  csAtUtf8
  * Purpose: Returns UTF-8 codepoint and length of codepoint (0 to 4).
  *******************************************************************************/
-int csAtUtf8(char* pcStr, const char* pcString, long long llPos) {
+int csAtUtf8(char* pcChar, const char* pcString, long long llPos) {
   long long llPosChar = 0;
   long long llPosUtf8 = cstr_len_utf8_char(pcString, &llPosChar);
   int       iBytes    = 0;
 
-  // Must be a 5 byte char array for a 4 byte UTF-8 char at max. Clear it.
-  pcStr[0] = pcStr[1] = pcStr[2] = pcStr[3] = pcStr[4] = 0;
+  // Must be a 5 byte char array for a 4 byte UTF-8 char at max.
+  pcChar[0] = pcChar[1] = pcChar[2] = pcChar[3] = pcChar[4] = 0;
 
   // Calc count of UTF-8 chars for boundary check.
-  if (llPos > llPosUtf8 || llPos < 0) {
-    pcStr[0] = 0;
+  if (llPos > llPosUtf8 || llPos < 0)
     return 0;
-  }
 
   // Reset vars for their actual purpose.
   llPosChar = 0;
@@ -778,17 +783,15 @@ int csAtUtf8(char* pcStr, const char* pcString, long long llPos) {
   // Get offset of UTF-8 position.
   while (llPosUtf8 < llPos) {
     // Stop at any malformed UTF-8 char.
-    if ((iBytes = cstr_utf8_bytes(&pcString[llPosChar])) == 0) {
-      pcStr[0] = 0;
+    if ((iBytes = cstr_utf8_bytes(&pcString[llPosChar])) == 0)
       return 0;
-    }
     llPosChar += iBytes;
     llPosUtf8 += 1;
   }
 
   iBytes = cstr_utf8_bytes(&pcString[llPosChar]);
   for(long long i = 0; i < iBytes; ++i)
-    pcStr[i] = pcString[llPosChar + i];
+    pcChar[i] = pcString[llPosChar + i];
 
   return iBytes;
 }
